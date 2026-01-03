@@ -177,8 +177,8 @@ setup_ssh_signing() {
     local key_file="$2"
 
     # Check Git version (requires 2.34+)
-    local git_version=$(git --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
-    if [[ "${git_version%.*}" -lt 2 ]] || [[ "${git_version#*.}" -lt 34 ]]; then
+    local git_version=$(git --version | awk '{print $3}')
+    if ! printf '%s\n' "2.34" "$git_version" | sort -V -C; then
         echo "Error: SSH signing requires Git 2.34+"
         echo "Current version: $(git --version)"
         return 1
