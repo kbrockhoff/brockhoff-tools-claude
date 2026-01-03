@@ -97,7 +97,7 @@ detect_hardware_keys() {
 ### Setup Operation
 ```bash
 setup_signing() {
-    local scope="${1:---local}"  # --global or --local
+    local scope="${1:--local}"  # --global or --local
     local format="${2:-gpg}"     # gpg or ssh
     local key_id="$3"            # optional specific key
 
