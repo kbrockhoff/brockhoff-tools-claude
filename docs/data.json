@@ -92,6 +92,11 @@
           "name": "GitHub CLI Integration",
           "id": "github-cli",
           "description": "Foundation skill for GitHub CLI (gh) operations including authentication, PRs, and issues"
+        },
+        {
+          "name": "Signature Verification",
+          "id": "signature-verification",
+          "description": "Verify GPG and SSH commit signatures on pull, merge, and log operations"
         }
       ],
       "hooks": [],
