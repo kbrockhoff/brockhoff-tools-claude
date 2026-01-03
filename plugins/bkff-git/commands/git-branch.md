@@ -191,7 +191,7 @@ delete_branch() {
     # Delete remote branch if requested
     if [[ "$delete_remote" == "true" ]]; then
         echo "Deleting remote branch..."
-        git push origin --delete "$branch_name" 2>/dev/null || true
+        git push origin --delete "$branch_name"
     fi
 
     echo "Deleted branch '$branch_name'"
