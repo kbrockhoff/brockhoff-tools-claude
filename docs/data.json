@@ -51,6 +51,12 @@
           "argument_hint": "<type>(<scope>): <description> [--co-author=NAME] [--no-verify]"
         },
         {
+          "name": "git-pr",
+          "description": "Create pull requests with templates, auto-populated content, and reviewer assignment",
+          "synopsis": "/bkff-git:git-pr [--title=TITLE] [--base=BRANCH] [--draft] [--reviewer=USER] [--label=LABEL] [--web]",
+          "argument_hint": "[--title=TITLE] [--draft] [--base=BRANCH]"
+        },
+        {
           "name": "git-status",
           "description": "Comprehensive repository status showing working tree, branch, commits, and stashes",
           "synopsis": "/bkff-git:git-status [--commits=N]",
