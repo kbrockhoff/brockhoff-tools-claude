@@ -1,5 +1,5 @@
 {
-  "name": "brockhoff-cloud",
+  "name": "brockhoff-tools",
   "owner": "kbrockhoff",
   "plugins": [
     {
@@ -38,6 +38,17 @@
       ],
       "has_readme": true,
       "has_mcp": true
+    },
+    {
+      "name": "bkff-git",
+      "description": "Git operations skills for repository management, commits, PRs, and signing",
+      "version": "0.0.1",
+      "commands": [],
+      "skills": [],
+      "hooks": [],
+      "agents": [],
+      "has_readme": true,
+      "has_mcp": false
     }
   ]
 }

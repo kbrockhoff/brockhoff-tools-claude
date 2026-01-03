@@ -1,0 +1,8 @@
+{
+  "name": "bkff-git",
+  "description": "Git operations skills for repository management, commits, PRs, and signing",
+  "version": "0.0.1",
+  "author": {
+    "name": "kbrockhoff"
+  }
+}
