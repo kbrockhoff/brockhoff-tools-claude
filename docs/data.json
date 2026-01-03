@@ -45,6 +45,12 @@
       "version": "0.0.1",
       "commands": [
         {
+          "name": "git-commit",
+          "description": "Create commits with conventional commit format enforcement and optional signing",
+          "synopsis": "/bkff-git:git-commit <type>(<scope>): <description> [--co-author=NAME <email>] [--no-verify] [--no-sign]",
+          "argument_hint": "<type>(<scope>): <description> [--co-author=NAME] [--no-verify]"
+        },
+        {
           "name": "git-status",
           "description": "Comprehensive repository status showing working tree, branch, commits, and stashes",
           "synopsis": "/bkff-git:git-status [--commits=N]",
