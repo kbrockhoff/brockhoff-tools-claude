@@ -57,7 +57,13 @@
           "argument_hint": "[--commits=N]"
         }
       ],
-      "skills": [],
+      "skills": [
+        {
+          "name": "GitHub CLI Integration",
+          "id": "github-cli",
+          "description": "Foundation skill for GitHub CLI (gh) operations including authentication, PRs, and issues"
+        }
+      ],
       "hooks": [],
       "agents": [],
       "has_readme": true,
