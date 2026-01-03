@@ -10,6 +10,7 @@ This document lists all available Claude Code plugins and their commands in the 
 Git operations skills for repository management, commits, PRs, and signing
 
 **Commands:**
+- **`/bkff-git:git-branch` `[list|create|switch|delete|compare] [BRANCH] [--remote]`** - Branch management with naming conventions, creation, switching, and cleanup
 - **`/bkff-git:git-commit` `<type>(<scope>): <description> [--co-author=NAME] [--no-verify]`** - Create commits with conventional commit format enforcement and optional signing
 - **`/bkff-git:git-pr` `[--title=TITLE] [--draft] [--base=BRANCH]`** - Create pull requests with templates, auto-populated content, and reviewer assignment
 - **`/bkff-git:git-status` `[--commits=N]`** - Comprehensive repository status showing working tree, branch, commits, and stashes
