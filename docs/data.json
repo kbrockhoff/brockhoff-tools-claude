@@ -63,6 +63,12 @@
           "argument_hint": "[--title=TITLE] [--draft] [--base=BRANCH]"
         },
         {
+          "name": "git-signing",
+          "description": "Configure commit signing with GPG or SSH keys including hardware key support",
+          "synopsis": "/bkff-git:git-signing [status|setup|disable|test] [--global] [--ssh] [--gpg] [--key=KEYID]",
+          "argument_hint": "[status|setup|disable] [--global] [--ssh] [--gpg]"
+        },
+        {
           "name": "git-status",
           "description": "Comprehensive repository status showing working tree, branch, commits, and stashes",
           "synopsis": "/bkff-git:git-status [--commits=N]",
