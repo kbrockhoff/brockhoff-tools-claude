@@ -10,6 +10,7 @@ This document lists all available Claude Code plugins and their commands in the 
 Git operations skills for repository management, commits, PRs, and signing
 
 **Commands:**
+- **`/bkff-git:git-commit` `<type>(<scope>): <description> [--co-author=NAME] [--no-verify]`** - Create commits with conventional commit format enforcement and optional signing
 - **`/bkff-git:git-status` `[--commits=N]`** - Comprehensive repository status showing working tree, branch, commits, and stashes
 
 See [plugins/bkff-git/README.md](plugins/bkff-git/README.md) for detailed documentation.
