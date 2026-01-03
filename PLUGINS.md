@@ -13,6 +13,7 @@ Git operations skills for repository management, commits, PRs, and signing
 - **`/bkff-git:git-branch` `[list|create|switch|delete|compare] [BRANCH] [--remote]`** - Branch management with naming conventions, creation, switching, and cleanup
 - **`/bkff-git:git-commit` `<type>(<scope>): <description> [--co-author=NAME] [--no-verify]`** - Create commits with conventional commit format enforcement and optional signing
 - **`/bkff-git:git-pr` `[--title=TITLE] [--draft] [--base=BRANCH]`** - Create pull requests with templates, auto-populated content, and reviewer assignment
+- **`/bkff-git:git-signing` `[status|setup|disable] [--global] [--ssh] [--gpg]`** - Configure commit signing with GPG or SSH keys including hardware key support
 - **`/bkff-git:git-status` `[--commits=N]`** - Comprehensive repository status showing working tree, branch, commits, and stashes
 - **`/bkff-git:git-sync` `[fetch|pull|push|all] [--rebase] [--remote=NAME]`** - Synchronize with remote repositories via fetch, pull, and push operations
 
