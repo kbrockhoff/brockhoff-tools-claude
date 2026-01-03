@@ -61,6 +61,12 @@
           "description": "Comprehensive repository status showing working tree, branch, commits, and stashes",
           "synopsis": "/bkff-git:git-status [--commits=N]",
           "argument_hint": "[--commits=N]"
+        },
+        {
+          "name": "git-sync",
+          "description": "Synchronize with remote repositories via fetch, pull, and push operations",
+          "synopsis": "/bkff-git:git-sync [fetch|pull|push|all] [--rebase] [--force-with-lease] [--remote=NAME] [--prune]",
+          "argument_hint": "[fetch|pull|push|all] [--rebase] [--remote=NAME]"
         }
       ],
       "skills": [
