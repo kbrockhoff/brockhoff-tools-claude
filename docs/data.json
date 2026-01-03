@@ -43,7 +43,14 @@
       "name": "bkff-git",
       "description": "Git operations skills for repository management, commits, PRs, and signing",
       "version": "0.0.1",
-      "commands": [],
+      "commands": [
+        {
+          "name": "git-status",
+          "description": "Comprehensive repository status showing working tree, branch, commits, and stashes",
+          "synopsis": "/bkff-git:git-status [--commits=N]",
+          "argument_hint": "[--commits=N]"
+        }
+      ],
       "skills": [],
       "hooks": [],
       "agents": [],
