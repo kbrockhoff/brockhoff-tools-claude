@@ -1,6 +1,6 @@
 {
-  "name": "{{MARKETPLACE_NAME}}",
-  "owner": "{{OWNER_NAME}}",
+  "name": "brockhoff-cloud",
+  "owner": "kbrockhoff",
   "plugins": [
     {
       "name": "example-plugin",
@@ -21,7 +21,23 @@
           "description": "Demonstrates how to create a task-specific skill for complex operations"
         }
       ],
-      "has_readme": true
+      "hooks": [
+        {
+          "name": "user-prompt-submit",
+          "event": "user-prompt-submit",
+          "description": "Example hook that runs before user prompts are submitted"
+        }
+      ],
+      "agents": [
+        {
+          "name": "Example Agent",
+          "id": "example-agent",
+          "description": "Demonstrates autonomous agent for complex workflows",
+          "subagent_type": "example-agent"
+        }
+      ],
+      "has_readme": true,
+      "has_mcp": true
     }
   ]
 }
