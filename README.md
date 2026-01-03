@@ -1,19 +1,19 @@
-# brockhoff-cloud
+# Brockhoff Cloud Platform Claude Tooling
 
-Claude Code Plugins by kbrockhoff
+Claude Code Plugins used for Brockhoff Cloud Platform development.
 
 ## Installation
 
 Add the marketplace to Claude Code:
 
 ```
-/plugin marketplace add kbrockhoff/brockhoff-claude-marketplace
+/plugin marketplace add kbrockhoff/brockhoff-tools-claude
 ```
 
 Install a specific plugin:
 
 ```
-/plugin install example-plugin@brockhoff-cloud
+/plugin install example-plugin@brockhoff-tools
 ```
 
 ## Plugins
@@ -36,7 +36,7 @@ make update
 
 ## Documentation
 
-Visit the [documentation site](https://kbrockhoff.github.io/brockhoff-claude-marketplace) for more information.
+Visit the [documentation site](https://kbrockhoff.github.io/brockhoff-tools-claude) for more information.
 
 ## License
 

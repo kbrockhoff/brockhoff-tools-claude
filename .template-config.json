@@ -1,8 +1,8 @@
 {
   "template_version": "1.0.0",
-  "marketplace_name": "brockhoff-cloud",
+  "marketplace_name": "brockhoff-tools",
   "owner_name": "kbrockhoff",
-  "github_repo": "kbrockhoff/brockhoff-claude-marketplace",
+  "github_repo": "kbrockhoff/brockhoff-tools-claude",
   "color_scheme": {
     "primary": "#228B22",
     "primary_dark": "#1a6b1a",
