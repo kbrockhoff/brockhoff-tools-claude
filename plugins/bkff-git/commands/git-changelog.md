@@ -180,7 +180,7 @@ generate_json() {
     echo "  \"version\": \"${version:-unreleased}\","
     echo "  \"date\": \"${date}\","
     echo "  \"range\": \"${from}..${to}\","
-    echo "  \"changes\": {"
+    echo '  "changes": [',
 
     # Parse and output as JSON
     git log "$from..$to" --pretty=format:'{
@@ -191,7 +191,7 @@ generate_json() {
     "date": "%aI"
   },' | sed '$ s/,$//'
 
-    echo "  }"
+    echo '  ]',
     echo "}"
 }
 ```
