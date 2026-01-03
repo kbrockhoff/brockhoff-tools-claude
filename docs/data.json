@@ -51,6 +51,12 @@
           "argument_hint": "[list|create|switch|delete|compare] [BRANCH] [--remote]"
         },
         {
+          "name": "git-changelog",
+          "description": "Generate changelogs from conventional commits with grouping and formatting",
+          "synopsis": "/bkff-git:git-changelog [FROM..TO] [--output=FILE] [--format=md|json] [--version=TAG] [--unreleased] [--full]",
+          "argument_hint": "[FROM..TO] [--output=FILE] [--format=md|json]"
+        },
+        {
           "name": "git-commit",
           "description": "Create commits with conventional commit format enforcement and optional signing",
           "synopsis": "/bkff-git:git-commit <type>(<scope>): <description> [--co-author=NAME <email>] [--no-verify] [--no-sign]",
