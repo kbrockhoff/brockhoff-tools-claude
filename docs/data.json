@@ -45,6 +45,12 @@
       "version": "0.0.1",
       "commands": [
         {
+          "name": "git-branch",
+          "description": "Branch management with naming conventions, creation, switching, and cleanup",
+          "synopsis": "/bkff-git:git-branch [list|create|switch|delete|compare|prune] [BRANCH] [--remote] [--force] [--all]",
+          "argument_hint": "[list|create|switch|delete|compare] [BRANCH] [--remote]"
+        },
+        {
           "name": "git-commit",
           "description": "Create commits with conventional commit format enforcement and optional signing",
           "synopsis": "/bkff-git:git-commit <type>(<scope>): <description> [--co-author=NAME <email>] [--no-verify] [--no-sign]",
