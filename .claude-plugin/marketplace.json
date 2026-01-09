@@ -8,6 +8,11 @@
       "name": "example-plugin",
       "source": "./plugins/example-plugin",
       "description": "Example plugin demonstrating command structure"
+    },
+    {
+      "name": "bkff-git",
+      "source": "./plugins/bkff-git",
+      "description": "Git operations skills for repository management, commits, PRs, and signing"
     }
   ]
 }
