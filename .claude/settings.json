@@ -73,5 +73,8 @@
       "Bash(sudo rm -rf /)",
       "Bash(sudo rm -rf /*)"
     ]
+  },
+  "enabledPlugins": {
+    "plugin-dev@claude-plugins-official": true
   }
 }
