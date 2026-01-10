@@ -1,8 +1,17 @@
 {
   "name": "bkff-git",
-  "description": "Git operations skills for repository management, commits, PRs, and signing",
-  "version": "0.0.1",
+  "description": "Git lifecycle commands for worktree-based development: status, branch, commit, sync, and PR management",
+  "version": "0.1.0",
   "author": {
     "name": "kbrockhoff"
+  },
+  "repository": "https://github.com/kbrockhoff/brockhoff-tools-claude",
+  "license": "MIT",
+  "keywords": ["git", "github", "worktree", "conventional-commits", "pr"],
+  "dependencies": {
+    "git": ">=2.25.0",
+    "gh": ">=2.0.0",
+    "bd": "*",
+    "jq": "*"
   }
 }

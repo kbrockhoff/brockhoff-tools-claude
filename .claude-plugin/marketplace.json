@@ -12,7 +12,7 @@
     {
       "name": "bkff-git",
       "source": "./plugins/bkff-git",
-      "description": "Git operations skills for repository management, commits, PRs, and signing"
+      "description": "Git lifecycle commands for worktree-based development: status, branch, commit, sync, and PR management"
     }
   ]
 }
