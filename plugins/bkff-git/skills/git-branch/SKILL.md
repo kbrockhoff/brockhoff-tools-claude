@@ -104,13 +104,13 @@ case "$ISSUE_TYPE" in
     *) BRANCH_PREFIX="feature" ;;
 esac
 
-SANITIZED=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | cut -c1-30)
+SANITIZED=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | tr -s '-' | cut -c1-30)
 BRANCH_NAME="${BRANCH_PREFIX}/${ISSUE_ID}-${SANITIZED}"
 
 git rev-parse --verify "$BRANCH_NAME" &>/dev/null && error_exit "Branch '$BRANCH_NAME' already exists"
 
 WORKTREE_BASE=$(dirname "$(get_worktree_path)")
-WORKTREE_DIR="${WORKTREE_BASE}/${ISSUE_ID}-$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | cut -c1-20)"
+WORKTREE_DIR="${WORKTREE_BASE}/${ISSUE_ID}-$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | tr -s '-' | cut -c1-20)"
 
 [[ -d "$WORKTREE_DIR" ]] && error_exit "Directory '$WORKTREE_DIR' already exists"
 
