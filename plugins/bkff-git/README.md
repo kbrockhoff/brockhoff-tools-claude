@@ -16,26 +16,33 @@ Git lifecycle commands for Claude Code, designed for developers working in git w
 
 2. **Install dependencies**:
    ```bash
-   # Git (2.25+)
-   git --version
+   # Git (2.25+) - required
+   git --version  # verify >= 2.25
 
-   # GitHub CLI
-   brew install gh  # macOS
+   # GitHub CLI (2.0+) - required for PR management
+   brew install gh        # macOS
+   # apt install gh       # Debian/Ubuntu
    gh auth login
 
-   # Beads CLI
-   # Install from: https://github.com/your-org/beads
+   # jq - required for JSON parsing
+   brew install jq        # macOS
+   # apt install jq       # Debian/Ubuntu
 
-   # jq for JSON parsing
-   brew install jq  # macOS
+   # Beads CLI - optional (features degrade gracefully without it)
+   # Install bd from the Claude Code marketplace or your organization
+   # Verify: bd --version
    ```
 
-3. **Configure GPG signing**:
+3. **Configure GPG signing** (required for commits):
    ```bash
+   # Install GPG if needed
+   brew install gnupg     # macOS
+   # apt install gnupg    # Debian/Ubuntu
+
    # Generate a GPG key if you don't have one
    gpg --gen-key
 
-   # Get your key ID
+   # Get your key ID (look for "sec" line, use the part after the slash)
    gpg --list-secret-keys --keyid-format=long
 
    # Configure git to use your key
