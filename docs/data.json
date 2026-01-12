@@ -41,62 +41,34 @@
     },
     {
       "name": "bkff-git",
-      "description": "Git operations skills for repository management, commits, PRs, and signing",
-      "version": "0.0.1",
-      "commands": [
+      "description": "Git lifecycle commands for worktree-based development: status, branch, commit, sync, and PR management",
+      "version": "0.1.0",
+      "commands": [],
+      "skills": [
         {
-          "name": "git-branch",
-          "description": "Branch management with naming conventions, creation, switching, and cleanup",
-          "synopsis": "/bkff-git:git-branch [list|create|switch|delete|compare|prune] [BRANCH] [--remote] [--force] [--all]",
-          "argument_hint": "[list|create|switch|delete|compare] [BRANCH] [--remote]"
+          "name": "git-st",
+          "id": "git-st",
+          "description": "Check development status - uncommitted changes, last commit, beads tasks, and PR status"
         },
         {
-          "name": "git-changelog",
-          "description": "Generate changelogs from conventional commits with grouping and formatting",
-          "synopsis": "/bkff-git:git-changelog [FROM..TO] [--output=FILE] [--format=md|json] [--version=TAG] [--unreleased] [--full]",
-          "argument_hint": "[FROM..TO] [--output=FILE] [--format=md|json]"
+          "name": "git-branch",
+          "id": "git-branch",
+          "description": "Create a new feature branch from a beads issue with proper prefix, worktree, and beads initialization"
         },
         {
           "name": "git-commit",
-          "description": "Create commits with conventional commit format enforcement and optional signing",
-          "synopsis": "/bkff-git:git-commit <type>(<scope>): <description> [--co-author=NAME <email>] [--no-verify] [--no-sign]",
-          "argument_hint": "<type>(<scope>): <description> [--co-author=NAME] [--no-verify]"
-        },
-        {
-          "name": "git-pr",
-          "description": "Create pull requests with templates, auto-populated content, and reviewer assignment",
-          "synopsis": "/bkff-git:git-pr [--title=TITLE] [--base=BRANCH] [--draft] [--reviewer=USER] [--label=LABEL] [--web]",
-          "argument_hint": "[--title=TITLE] [--draft] [--base=BRANCH]"
-        },
-        {
-          "name": "git-signing",
-          "description": "Configure commit signing with GPG or SSH keys including hardware key support",
-          "synopsis": "/bkff-git:git-signing [status|setup|disable|test] [--global] [--ssh] [--gpg] [--key=KEYID]",
-          "argument_hint": "[status|setup|disable] [--global] [--ssh] [--gpg]"
-        },
-        {
-          "name": "git-status",
-          "description": "Comprehensive repository status showing working tree, branch, commits, and stashes",
-          "synopsis": "/bkff-git:git-status [--commits=N]",
-          "argument_hint": "[--commits=N]"
+          "id": "git-commit",
+          "description": "Commit all changes with validation, conventional commit message, GPG signing, and push to origin"
         },
         {
           "name": "git-sync",
-          "description": "Synchronize with remote repositories via fetch, pull, and push operations",
-          "synopsis": "/bkff-git:git-sync [fetch|pull|push|all] [--rebase] [--force-with-lease] [--remote=NAME] [--prune]",
-          "argument_hint": "[fetch|pull|push|all] [--rebase] [--remote=NAME]"
-        }
-      ],
-      "skills": [
-        {
-          "name": "GitHub CLI Integration",
-          "id": "github-cli",
-          "description": "Foundation skill for GitHub CLI (gh) operations including authentication, PRs, and issues"
+          "id": "git-sync",
+          "description": "Sync with remote using smart rebase/merge selection based on push status"
         },
         {
-          "name": "Signature Verification",
-          "id": "signature-verification",
-          "description": "Verify GPG and SSH commit signatures on pull, merge, and log operations"
+          "name": "git-pr",
+          "id": "git-pr",
+          "description": "Create or update a pull request for the current branch"
         }
       ],
       "hooks": [],
