@@ -178,14 +178,18 @@ else
     echo "### Pull Request"
     info "Creating pull request..."
 
-    PR_BODY=$(generate_pr_body)
+    # Build gh pr create command using array for safe argument handling
+    CREATE_ARGS=('--title' "$CUSTOM_TITLE" '--base' "$MAIN_BRANCH")
+    [[ -n "$DRAFT_FLAG" ]] && CREATE_ARGS+=('--draft')
 
-    # Build gh pr create command
-    GH_CMD="gh pr create --title \"$CUSTOM_TITLE\" --body \"\$PR_BODY\" --base $MAIN_BRANCH"
-    [[ -n "$DRAFT_FLAG" ]] && GH_CMD="$GH_CMD $DRAFT_FLAG"
-    [[ -n "$TEMPLATE_FILE" ]] && GH_CMD="gh pr create --title \"$CUSTOM_TITLE\" --base $MAIN_BRANCH $DRAFT_FLAG"
+    # FR-027: Only provide --body if no template file exists
+    # gh pr create automatically uses PR template when found and --body is not provided
+    if [[ -z "$TEMPLATE_FILE" ]]; then
+        PR_BODY=$(generate_pr_body)
+        CREATE_ARGS+=('--body' "$PR_BODY")
+    fi
 
-    if PR_URL=$(gh pr create --title "$CUSTOM_TITLE" --body "$PR_BODY" --base "$MAIN_BRANCH" $DRAFT_FLAG 2>&1); then
+    if PR_URL=$(gh pr create "${CREATE_ARGS[@]}" 2>&1); then
         PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$' || echo "")
         echo "- **Number**: #$PR_NUMBER"
         echo "- **Title**: $CUSTOM_TITLE"
