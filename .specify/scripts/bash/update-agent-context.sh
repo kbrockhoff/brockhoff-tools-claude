@@ -407,75 +407,112 @@ update_existing_agent_file() {
         has_recent_changes=1
     fi
     
-    # Process file line by line
-    local in_tech_section=false
-    local in_changes_section=false
+    # Use awk for robust section-based processing
+    # This approach handles sections as units, making it resilient to:
+    # - Extra newlines within sections
+    # - Sub-headings (###) within sections
+    # - Formatting variations
+
+    # Build new tech entries string for awk
+    local new_tech_str=""
+    if [[ ${#new_tech_entries[@]} -gt 0 ]]; then
+        new_tech_str=$(printf '%s\n' "${new_tech_entries[@]}")
+    fi
+
+    # Process file with awk - handles Active Technologies, Recent Changes, and timestamps
+    awk -v new_tech="$new_tech_str" \
+        -v new_change="$new_change_entry" \
+        -v current_date="$current_date" \
+        -v max_changes=2 '
+    BEGIN {
+        in_tech = 0
+        in_changes = 0
+        tech_added = 0
+        changes_count = 0
+        change_added = 0
+    }
+
+    # Update timestamp lines
+    /\*\*Last updated\*\*:.*[0-9]{4}-[0-9]{2}-[0-9]{2}/ {
+        gsub(/[0-9]{4}-[0-9]{2}-[0-9]{2}/, current_date)
+        print
+        next
+    }
+
+    # Start of Active Technologies section
+    /^## Active Technologies/ {
+        print
+        in_tech = 1
+        next
+    }
+
+    # Start of Recent Changes section
+    /^## Recent Changes/ {
+        print
+        # Add new change entry right after heading
+        if (new_change != "") {
+            print new_change
+            change_added = 1
+        }
+        in_changes = 1
+        changes_count = 0
+        next
+    }
+
+    # Any new ## section ends the current section
+    /^## / {
+        # Before leaving tech section, add new entries if not yet added
+        if (in_tech && !tech_added && new_tech != "") {
+            print new_tech
+            tech_added = 1
+        }
+        in_tech = 0
+        in_changes = 0
+        print
+        next
+    }
+
+    # Inside Active Technologies section
+    in_tech {
+        # Add new tech entries before first empty line (end of list)
+        if (/^[[:space:]]*$/ && !tech_added && new_tech != "") {
+            print new_tech
+            tech_added = 1
+        }
+        print
+        next
+    }
+
+    # Inside Recent Changes section - keep only max_changes existing entries
+    in_changes {
+        if (/^- /) {
+            if (changes_count < max_changes) {
+                print
+                changes_count++
+            }
+            # Skip entries beyond max_changes
+            next
+        }
+        # Print non-list-item lines (empty lines, etc.)
+        print
+        next
+    }
+
+    # Default: print line unchanged
+    { print }
+
+    # End of file: add tech entries if section existed but had no content after it
+    END {
+        if (in_tech && !tech_added && new_tech != "") {
+            print new_tech
+        }
+    }
+    ' "$target_file" > "$temp_file"
+
     local tech_entries_added=false
     local changes_entries_added=false
-    local existing_changes_count=0
-    local file_ended=false
-    
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        # Handle Active Technologies section
-        if [[ "$line" == "## Active Technologies" ]]; then
-            echo "$line" >> "$temp_file"
-            in_tech_section=true
-            continue
-        elif [[ $in_tech_section == true ]] && [[ "$line" =~ ^##[[:space:]] ]]; then
-            # Add new tech entries before closing the section
-            if [[ $tech_entries_added == false ]] && [[ ${#new_tech_entries[@]} -gt 0 ]]; then
-                printf '%s\n' "${new_tech_entries[@]}" >> "$temp_file"
-                tech_entries_added=true
-            fi
-            echo "$line" >> "$temp_file"
-            in_tech_section=false
-            continue
-        elif [[ $in_tech_section == true ]] && [[ -z "$line" ]]; then
-            # Add new tech entries before empty line in tech section
-            if [[ $tech_entries_added == false ]] && [[ ${#new_tech_entries[@]} -gt 0 ]]; then
-                printf '%s\n' "${new_tech_entries[@]}" >> "$temp_file"
-                tech_entries_added=true
-            fi
-            echo "$line" >> "$temp_file"
-            continue
-        fi
-        
-        # Handle Recent Changes section
-        if [[ "$line" == "## Recent Changes" ]]; then
-            echo "$line" >> "$temp_file"
-            # Add new change entry right after the heading
-            if [[ -n "$new_change_entry" ]]; then
-                echo "$new_change_entry" >> "$temp_file"
-            fi
-            in_changes_section=true
-            changes_entries_added=true
-            continue
-        elif [[ $in_changes_section == true ]] && [[ "$line" =~ ^##[[:space:]] ]]; then
-            echo "$line" >> "$temp_file"
-            in_changes_section=false
-            continue
-        elif [[ $in_changes_section == true ]] && [[ "$line" == "- "* ]]; then
-            # Keep only first 2 existing changes
-            if [[ $existing_changes_count -lt 2 ]]; then
-                echo "$line" >> "$temp_file"
-                ((existing_changes_count++))
-            fi
-            continue
-        fi
-        
-        # Update timestamp
-        if [[ "$line" =~ \*\*Last\ updated\*\*:.*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] ]]; then
-            echo "$line" | sed "s/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/$current_date/" >> "$temp_file"
-        else
-            echo "$line" >> "$temp_file"
-        fi
-    done < "$target_file"
-    
-    # Post-loop check: if we're still in the Active Technologies section and haven't added new entries
-    if [[ $in_tech_section == true ]] && [[ $tech_entries_added == false ]] && [[ ${#new_tech_entries[@]} -gt 0 ]]; then
-        printf '%s\n' "${new_tech_entries[@]}" >> "$temp_file"
-        tech_entries_added=true
-    fi
+    [[ -n "$new_tech_str" ]] && tech_entries_added=true
+    [[ -n "$new_change_entry" ]] && changes_entries_added=true
     
     # If sections don't exist, add them at the end of the file
     if [[ $has_active_technologies -eq 0 ]] && [[ ${#new_tech_entries[@]} -gt 0 ]]; then
