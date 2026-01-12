@@ -102,12 +102,12 @@ Creates a new branch from a beads issue with automatic prefix detection.
 Validates, stages, commits with conventional message, and pushes.
 
 ```bash
-/bkff:git-commit [--message "custom message"] [--co-author "Name <email>"]
+/bkff:git-commit [-m "message"] [--co-author "Name <email>"]
 ```
 
 **Options:**
-- `--message`: Override auto-generated commit message
-- `--co-author`: Add co-author attribution
+- `-m`, `--message`: Override auto-generated commit message
+- `--co-author`: Add co-author attribution (format: `"Name <email>"`)
 
 **Actions:**
 1. Runs build validation (make lint, npm run lint, etc.)
@@ -124,6 +124,9 @@ Fetches and integrates changes using smart strategy selection.
 /bkff:git-sync [source-branch]
 ```
 
+**Arguments:**
+- `source-branch`: Branch to sync from (default: `main`)
+
 **Strategy:**
 - **Rebase**: Used when branch not yet pushed (clean history)
 - **Merge**: Used when branch already pushed (preserve history)
@@ -139,12 +142,12 @@ Fetches and integrates changes using smart strategy selection.
 Creates or updates a pull request for the current branch.
 
 ```bash
-/bkff:git-pr [--title "PR title"] [--draft]
+/bkff:git-pr [-t "PR title"] [-d]
 ```
 
 **Options:**
-- `--title`: Override auto-generated PR title
-- `--draft`: Create as draft PR
+- `-t`, `--title`: Override auto-generated PR title
+- `-d`, `--draft`: Create as draft PR
 
 **Actions:**
 1. Pushes branch if needed
