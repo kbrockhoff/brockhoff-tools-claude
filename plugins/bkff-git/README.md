@@ -286,3 +286,55 @@ If `git-sync` reports conflicts:
 2. Stage resolved files: `git add <file>`
 3. Continue: `git rebase --continue` or `git commit`
 4. Or abort: `git rebase --abort` or `git merge --abort`
+
+### "Cannot create PR from main branch"
+
+You're on the main/master branch. Create a feature branch first:
+```bash
+/bkff:git-branch <issue-id>
+```
+
+### "Failed to create PR" / GitHub Authentication
+
+GitHub CLI is not authenticated or token expired:
+```bash
+gh auth status      # Check current auth
+gh auth login       # Re-authenticate
+gh auth refresh     # Refresh token
+```
+
+### "Issue not found"
+
+The beads issue ID doesn't exist. List available issues:
+```bash
+bd list --status=open
+bd search "keyword"
+```
+
+### "Directory already exists"
+
+The worktree directory path already exists. Remove or rename it:
+```bash
+ls -la ../          # Check existing directories
+rm -rf ../old-dir   # Remove if unused
+```
+
+### "You have uncommitted changes"
+
+`git-sync` requires a clean working directory. Commit or stash changes first:
+```bash
+/bkff:git-commit              # Commit changes
+# or
+git stash                     # Temporarily stash
+/bkff:git-sync
+git stash pop                 # Restore stashed changes
+```
+
+### "Source branch not found on origin"
+
+The branch you're syncing from doesn't exist on the remote:
+```bash
+git fetch origin              # Update remote refs
+git branch -r                 # List remote branches
+/bkff:git-sync main           # Specify correct branch
+```
