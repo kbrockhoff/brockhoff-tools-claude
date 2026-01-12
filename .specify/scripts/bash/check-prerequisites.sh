@@ -79,7 +79,8 @@ SCRIPT_DIR="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # Get feature paths and validate branch
-eval $(get_feature_paths)
+# Note: eval is safe here because get_feature_paths uses printf %q for shell-safe quoting
+eval "$(get_feature_paths)"
 check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1
 
 # If paths-only mode, output paths and exit (support JSON + paths-only combined)
