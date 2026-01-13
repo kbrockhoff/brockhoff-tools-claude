@@ -82,11 +82,11 @@ A developer wants to synchronize their branch with changes from another branch (
 
 ### User Story 5 - Manage Pull Request (Priority: P3)
 
-A developer wants to create or update a pull request for their branch. They invoke the PR command, which checks for an existing PR and either updates it or creates a new one, using the repository's PR template if available.
+A developer wants to create or update a pull request for their branch. They invoke the PR command, which checks for an existing PR and either updates it or creates a new one, using the repository's PR template if available. The developer can optionally create the PR as a draft when the work is not yet ready for full review, later mark it as ready when development is complete, and retrieve reviewer feedback to address comments.
 
-**Why this priority**: PR management is the final step in the development workflow before code review. Automating this reduces manual effort and ensures consistency.
+**Why this priority**: PR management is the final step in the development workflow before code review. Automating this reduces manual effort and ensures consistency. Draft PR support enables early feedback while signaling work-in-progress status, and review comment retrieval streamlines the feedback loop.
 
-**Independent Test**: Can be fully tested by running the PR command on branches with and without existing PRs, verifying the correct create/update behavior.
+**Independent Test**: Can be fully tested by running the PR command on branches with and without existing PRs, verifying the correct create/update behavior, testing draft creation and ready marking, and verifying review comments are retrieved accurately.
 
 **Acceptance Scenarios**:
 
@@ -95,6 +95,16 @@ A developer wants to create or update a pull request for their branch. They invo
 3. **Given** a repository with `.github/pull_request_template.md`, **When** creating a new PR, **Then** the system uses the template content as the PR body
 4. **Given** a repository without a PR template, **When** creating a new PR, **Then** the system generates a reasonable default description based on commits
 5. **Given** the branch has not been pushed to origin, **When** user invokes `/bkff:git-pr`, **Then** the system pushes the branch first before creating the PR
+6. **Given** a branch with no existing PR, **When** user invokes `/bkff:git-pr --draft`, **Then** the system creates a new draft PR that is marked as not ready for review
+7. **Given** a branch with an existing draft PR, **When** user invokes `/bkff:git-pr --ready`, **Then** the system marks the PR as ready for review
+8. **Given** a branch with a non-draft PR, **When** user invokes `/bkff:git-pr --ready`, **Then** the system indicates the PR is already ready for review
+9. **Given** a branch with an existing PR that has review comments, **When** user invokes `/bkff:git-pr --comments`, **Then** the system retrieves and displays all review comments with reviewer attribution
+10. **Given** a branch with an existing PR that has no review comments, **When** user invokes `/bkff:git-pr --comments`, **Then** the system indicates no comments exist
+11. **Given** a branch with an existing PR that has review comments, **When** user invokes `/bkff:git-pr --comments --analyze`, **Then** the system retrieves comments and for each comment displays a compliance probability score (0-100%) indicating how likely implementing the suggestion would improve requirements compliance or security
+12. **Given** a review comment suggesting a code change, **When** analysis is performed, **Then** the system provides a brief rationale explaining which requirement(s) or security principle(s) the suggestion addresses
+13. **Given** a review comment that is purely stylistic or preference-based, **When** analysis is performed, **Then** the system assigns a low probability score and indicates the suggestion is outside requirements/security scope
+14. **Given** a branch with a spec file in the specs directory, **When** analysis is performed, **Then** the system uses the spec's functional requirements as the primary reference for compliance evaluation
+15. **Given** a branch without a spec file, **When** analysis is performed, **Then** the system evaluates comments against general security principles and coding best practices only
 
 ---
 
@@ -155,6 +165,18 @@ A developer wants to create or update a pull request for their branch. They invo
 - **FR-026**: System MUST create a new PR if none exists
 - **FR-027**: System MUST use `.github/pull_request_template.md` content if the file exists
 - **FR-028**: System MUST ensure the branch is pushed to origin before creating a PR
+- **FR-034**: System MUST support creating a PR as a draft when `--draft` flag is provided
+- **FR-035**: System MUST support marking a draft PR as ready for review when `--ready` flag is provided
+- **FR-036**: System MUST indicate when `--ready` is used on a PR that is already ready for review
+- **FR-037**: System MUST retrieve and display all review comments for an existing PR when `--comments` flag is provided
+- **FR-038**: System MUST display reviewer attribution (name/username) with each review comment
+- **FR-039**: System MUST indicate when no review comments exist for a PR
+- **FR-040**: System MUST analyze each review comment against requirements and security principles when `--comments --analyze` flags are provided
+- **FR-041**: System MUST assign a compliance probability score (0-100%) to each analyzed comment indicating likelihood the suggestion improves requirements compliance or security
+- **FR-042**: System MUST provide a brief rationale for each analyzed comment explaining which requirement(s) or security principle(s) the suggestion addresses
+- **FR-043**: System MUST identify and flag comments that are purely stylistic or preference-based as outside requirements/security scope
+- **FR-044**: System MUST use the spec's functional requirements from the specs directory as the primary reference when a spec file exists for the branch
+- **FR-045**: System MUST evaluate comments against general security principles and coding best practices when no spec file exists
 
 #### General Requirements
 
@@ -185,6 +207,13 @@ A developer wants to create or update a pull request for their branch. They invo
 - **SC-007**: Pull requests use the repository template when available 100% of the time
 - **SC-008**: All five commands are discoverable and executable through Claude Code's skill system
 - **SC-009**: Error messages provide sufficient information for developers to resolve issues without additional investigation in 90% of failure cases
+- **SC-010**: Developers can create a draft PR and mark it ready in separate operations, enabling work-in-progress feedback workflows
+- **SC-011**: Developers can retrieve all review comments for a PR in under 5 seconds
+- **SC-012**: Review comments display clearly identifies the reviewer and comment content for 100% of comments
+- **SC-013**: Developers can analyze review comments for requirements compliance in under 30 seconds for PRs with up to 50 comments
+- **SC-014**: 100% of analyzed comments receive a compliance probability score and rationale
+- **SC-015**: Developers report that analysis helps them prioritize which review comments to address first in 80% of cases
+- **SC-016**: Analysis correctly identifies requirements-related comments vs stylistic comments in 90% of cases
 
 ## Clarifications
 

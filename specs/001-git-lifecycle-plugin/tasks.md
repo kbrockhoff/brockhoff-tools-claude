@@ -160,13 +160,13 @@ Project structure from plan.md:
 
 ## Phase 7: User Story 5 - Manage Pull Request (Priority: P3)
 
-**Goal**: Developer can create or update a PR for current branch using repository template
+**Goal**: Developer can create or update a PR for current branch, manage draft status, retrieve review comments, and analyze comments for requirements compliance
 
-**Independent Test**: Run `/bkff:git-pr` on branches with/without existing PRs and verify correct create/update behavior
+**Independent Test**: Run `/bkff:git-pr` on branches with/without existing PRs, verify create/update/draft/ready behavior, test `--comments` retrieval, and validate `--analyze` scoring
 
 **Contract**: specs/001-git-lifecycle-plugin/contracts/git-pr.md
 
-### Implementation for User Story 5
+### Implementation for User Story 5 - Core PR Management
 
 - [ ] T057 [US5] Create skill.md documentation for git-pr command in plugins/bkff-git/skills/git-pr/skill.md
 - [ ] T058 [US5] Implement existing PR check via gh pr list (FR-024) in plugins/bkff-git/skills/git-pr/SKILL.md
@@ -176,10 +176,40 @@ Project structure from plan.md:
 - [ ] T062 [US5] Implement default description generation from commits in plugins/bkff-git/skills/git-pr/SKILL.md
 - [ ] T063 [US5] Implement push before PR creation (FR-028) in plugins/bkff-git/skills/git-pr/SKILL.md
 - [ ] T064 [US5] Add --title override option support in plugins/bkff-git/skills/git-pr/SKILL.md
-- [ ] T065 [US5] Add --draft option support in plugins/bkff-git/skills/git-pr/SKILL.md
-- [ ] T066 [US5] Add main/master branch protection check in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T065 [US5] Add main/master branch protection check in plugins/bkff-git/skills/git-pr/SKILL.md
 
-**Checkpoint**: User Story 5 complete - `/bkff:git-pr` should be fully functional and testable independently
+### Implementation for User Story 5 - Draft PR Support (FR-034 to FR-036)
+
+- [ ] T066 [US5] Implement --draft flag for draft PR creation (FR-034) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T067 [US5] Implement --ready flag to mark draft PR as ready for review (FR-035) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T068 [US5] Add handling for --ready on already-ready PR with appropriate message (FR-036) in plugins/bkff-git/skills/git-pr/SKILL.md
+
+### Implementation for User Story 5 - Review Comments (FR-037 to FR-039)
+
+- [ ] T069 [US5] Implement --comments flag to retrieve PR review comments via gh api (FR-037) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T070 [US5] Implement reviewer attribution display with comment author username (FR-038) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T071 [US5] Add file path and line number display for line-specific comments in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T072 [US5] Add handling for no review comments with appropriate message (FR-039) in plugins/bkff-git/skills/git-pr/SKILL.md
+
+### Implementation for User Story 5 - Comment Analysis (FR-040 to FR-045)
+
+- [ ] T073 [P] [US5] Create pr-analysis.sh library for comment analysis utilities in plugins/bkff-git/lib/pr-analysis.sh
+- [ ] T074 [US5] Implement --analyze flag validation requiring --comments (FR-040) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T075 [US5] Implement spec file detection for branch (specs/<branch>/spec.md pattern) (FR-044) in plugins/bkff-git/lib/pr-analysis.sh
+- [ ] T076 [US5] Implement requirements extraction from spec file (FR-XXX patterns) in plugins/bkff-git/lib/pr-analysis.sh
+- [ ] T077 [US5] Implement compliance probability scoring (0-100%) for each comment (FR-041) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T078 [US5] Implement rationale generation explaining requirements/security addressed (FR-042) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T079 [US5] Implement stylistic/preference comment detection with low score (FR-043) in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T080 [US5] Implement general security principles fallback when no spec file (FR-045) in plugins/bkff-git/lib/pr-analysis.sh
+- [ ] T081 [US5] Implement analysis summary with priority recommendations in plugins/bkff-git/skills/git-pr/SKILL.md
+
+### Error Handling for User Story 5
+
+- [ ] T082 [US5] Add error handling for --ready without existing PR in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T083 [US5] Add error handling for --comments without existing PR in plugins/bkff-git/skills/git-pr/SKILL.md
+- [ ] T084 [US5] Add network failure handling for gh api calls in plugins/bkff-git/skills/git-pr/SKILL.md
+
+**Checkpoint**: User Story 5 complete - `/bkff:git-pr` with all flags (--draft, --ready, --comments, --analyze) should be fully functional and testable independently
 
 ---
 
@@ -187,13 +217,13 @@ Project structure from plan.md:
 
 **Purpose**: Documentation, validation, and improvements across all commands
 
-- [ ] T067 [P] Update README.md with complete command reference in plugins/bkff-git/README.md
-- [ ] T068 [P] Add installation instructions to README.md in plugins/bkff-git/README.md
-- [ ] T069 [P] Add troubleshooting section to README.md in plugins/bkff-git/README.md
-- [ ] T070 Run make lint to validate plugin structure
-- [ ] T071 Verify all commands work in sample git worktree
-- [ ] T072 Run quickstart.md validation scenarios from specs/001-git-lifecycle-plugin/quickstart.md
-- [ ] T073 Update marketplace.json if needed in .claude-plugin/marketplace.json
+- [ ] T085 [P] Update README.md with complete command reference in plugins/bkff-git/README.md
+- [ ] T086 [P] Add installation instructions to README.md in plugins/bkff-git/README.md
+- [ ] T087 [P] Add troubleshooting section to README.md in plugins/bkff-git/README.md
+- [ ] T088 Run make lint to validate plugin structure
+- [ ] T089 Verify all commands work in sample git worktree
+- [ ] T090 Run quickstart.md validation scenarios from specs/001-git-lifecycle-plugin/quickstart.md
+- [ ] T091 Update marketplace.json if needed in .claude-plugin/marketplace.json
 
 ---
 
@@ -210,15 +240,26 @@ Project structure from plan.md:
 
 ### User Story Dependencies
 
-| Story | Priority | Depends On | Can Parallelize With |
-|-------|----------|------------|----------------------|
-| US1 (git-st) | P1 | Foundational only | - |
-| US2 (git-branch) | P2 | Foundational only | US1, US3, US4, US5 |
-| US3 (git-commit) | P2 | Foundational only | US1, US2, US4, US5 |
-| US4 (git-sync) | P3 | Foundational only | US1, US2, US3, US5 |
-| US5 (git-pr) | P3 | Foundational only | US1, US2, US3, US4 |
+| Story | Priority | Depends On | Can Parallelize With | Task Range |
+|-------|----------|------------|----------------------|------------|
+| US1 (git-st) | P1 | Foundational only | - | T017-T024 |
+| US2 (git-branch) | P2 | Foundational only | US1, US3, US4, US5 | T025-T033 |
+| US3 (git-commit) | P2 | Foundational only | US1, US2, US4, US5 | T034-T046 |
+| US4 (git-sync) | P3 | Foundational only | US1, US2, US3, US5 | T047-T056 |
+| US5 (git-pr) | P3 | Foundational only | US1, US2, US3, US4 | T057-T084 |
 
 **Note**: All user stories are independently testable. No cross-story dependencies.
+
+### User Story 5 Breakdown
+
+US5 has significantly more tasks (28 total) due to the expanded PR functionality:
+- **Core PR Management** (T057-T065): Basic create/update/push operations
+- **Draft PR Support** (T066-T068): Draft creation and ready marking
+- **Review Comments** (T069-T072): Comment retrieval and display
+- **Comment Analysis** (T073-T081): AI-powered analysis with scoring
+- **Error Handling** (T082-T084): Validation and network error handling
+
+T073 (pr-analysis.sh library) can be parallelized with other US5 tasks.
 
 ### Within Each User Story
 
@@ -258,6 +299,19 @@ Task: "Implement git-sync command (US4) in plugins/bkff-git/skills/git-sync/"
 Task: "Implement git-pr command (US5) in plugins/bkff-git/skills/git-pr/"
 ```
 
+## Parallel Example: User Story 5 Internal Parallelization
+
+```bash
+# Within US5, these can be launched in parallel after T057 (skill.md) is done:
+# Group 1: Core PR management (T058-T065)
+Task: "Implement existing PR check in plugins/bkff-git/skills/git-pr/SKILL.md"
+
+# Group 2: Library work (can run in parallel with Group 1)
+Task: "Create pr-analysis.sh library in plugins/bkff-git/lib/pr-analysis.sh"
+
+# After Groups 1 & 2: Draft support, Comments, Analysis in sequence
+```
+
 ---
 
 ## Implementation Strategy
@@ -285,10 +339,16 @@ Task: "Implement git-pr command (US5) in plugins/bkff-git/skills/git-pr/"
 3. **Phase 4**: US2 git-branch (P2) - Start new work
 4. **Phase 5**: US3 git-commit (P2) - Save work
 5. **Phase 6**: US4 git-sync (P3) - Stay current
-6. **Phase 7**: US5 git-pr (P3) - Submit for review
-7. **Phase 8**: Polish
+6. **Phase 7**: US5 git-pr (P3) - Submit for review (largest phase: 28 tasks)
+   - Core PR management first (T057-T065)
+   - Then draft PR support (T066-T068)
+   - Then review comments (T069-T072)
+   - Finally comment analysis (T073-T084)
+7. **Phase 8**: Polish (~T085-T091)
 
 This order follows the natural developer workflow: check status → create branch → make changes → commit → sync → create PR.
+
+**Total Tasks**: 91 tasks across 8 phases
 
 ---
 
