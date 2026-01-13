@@ -150,20 +150,101 @@ bd list --status=open        # List open issues
 | `title` | string | PR title |
 | `body` | string | PR description |
 | `state` | enum | `open`, `closed`, `merged` |
+| `is_draft` | boolean | Whether PR is a draft (not ready for review) |
 | `head_branch` | string | Source branch |
 | `base_branch` | string | Target branch (usually `main`) |
 | `url` | string | PR URL |
 | `checks_status` | enum | `pending`, `success`, `failure` |
+| `review_comments` | ReviewComment[] | Comments from reviewers |
+
+**State Transitions**:
+```
+[Created] → [Draft] → [Ready for Review] → [Changes Requested] → [Approved] → [Merged]
+                ↓                              ↑
+                └──────────────────────────────┘
+```
 
 **Retrieval**:
 ```bash
-gh pr list --head "$branch" --json number,title,state,url
-gh pr view --json number,title,body,state
+gh pr list --head "$branch" --json number,title,state,url,isDraft
+gh pr view --json number,title,body,state,isDraft
+gh pr ready <number>  # Mark draft as ready
 ```
 
 ---
 
-### 6. Git Status
+### 6. Review Comment
+
+**Description**: A comment from a reviewer on a pull request.
+
+**Attributes**:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `id` | integer | Comment identifier |
+| `author` | string | Reviewer username |
+| `body` | string | Comment content |
+| `path` | string? | File path (null for general comments) |
+| `line` | integer? | Line number (null for general comments) |
+| `line_end` | integer? | End line for multi-line comments |
+| `created_at` | datetime | When comment was created |
+| `state` | enum | `pending`, `submitted` |
+
+**Retrieval**:
+```bash
+gh pr view <number> --json reviews,comments
+gh api repos/{owner}/{repo}/pulls/<number>/comments
+```
+
+**Comment Types**:
+
+| Type | Description |
+|------|-------------|
+| Line comment | Comment on specific code line |
+| Range comment | Comment on multiple lines |
+| General comment | Not tied to specific code |
+| Review summary | Top-level review comment |
+
+---
+
+### 7. Comment Analysis
+
+**Description**: AI-generated analysis of a review comment's relevance to requirements.
+
+**Attributes**:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `comment_id` | integer | Reference to ReviewComment |
+| `probability_score` | integer | 0-100% compliance probability |
+| `category` | enum | `requirements`, `security`, `stylistic`, `general` |
+| `rationale` | string | Explanation of the score |
+| `requirements_referenced` | string[] | FR-XXX IDs if applicable |
+| `is_actionable` | boolean | Whether comment suggests code change |
+
+**Category Definitions**:
+
+| Category | Score Range | Description |
+|----------|-------------|-------------|
+| `requirements` | 80-100% | Directly addresses functional requirements |
+| `security` | 60-100% | Addresses security principles |
+| `stylistic` | 0-49% | Code style/preference-based |
+| `general` | N/A | Non-actionable feedback |
+
+**Analysis Context**:
+```bash
+# Detect spec file for branch
+SPEC_FILE="specs/$(git branch --show-current)/spec.md"
+if [[ -f "$SPEC_FILE" ]]; then
+    # Use spec requirements
+else
+    # Fall back to general principles
+fi
+```
+
+---
+
+### 8. Git Status
 
 **Description**: Current state of the working directory and staging area.
 
@@ -210,24 +291,25 @@ gh pr view --json number,title,body,state
                                    │
                                    │ 1:1
                                    ▼
-┌─────────────────┐       ┌─────────────────┐
-│  Git Worktree   │◀──────│  Pull Request   │
-│                 │ 1:1   │                 │
-│ - path          │       │ - number        │
-│ - branch        │       │ - state         │
-│ - bare_path     │       │ - head_branch   │
-└────────┬────────┘       └─────────────────┘
-         │
-         │ contains
-         ▼
-┌─────────────────┐       ┌─────────────────┐
-│   Git Status    │       │ Conventional    │
-│                 │       │    Commit       │
-│ - staged_files  │──────▶│                 │
-│ - last_commit   │ 1:N   │ - type          │
-│ - branch_status │       │ - scope         │
-└─────────────────┘       │ - description   │
-                          └─────────────────┘
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│  Git Worktree   │◀──────│  Pull Request   │──────▶│ Review Comment  │
+│                 │ 1:1   │                 │ 1:N   │                 │
+│ - path          │       │ - number        │       │ - id            │
+│ - branch        │       │ - state         │       │ - author        │
+│ - bare_path     │       │ - is_draft      │       │ - body          │
+└────────┬────────┘       │ - head_branch   │       │ - path          │
+         │                └─────────────────┘       └────────┬────────┘
+         │                                                   │
+         │ contains                                          │ 1:1
+         ▼                                                   ▼
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│   Git Status    │       │ Conventional    │       │Comment Analysis │
+│                 │       │    Commit       │       │                 │
+│ - staged_files  │──────▶│                 │       │ - score         │
+│ - last_commit   │ 1:N   │ - type          │       │ - category      │
+│ - branch_status │       │ - scope         │       │ - rationale     │
+└─────────────────┘       │ - description   │       │ - requirements  │
+                          └─────────────────┘       └─────────────────┘
 ```
 
 ---
@@ -292,3 +374,7 @@ gh pr view --json number,title,body,state
 | Commit | Must have valid type | "Invalid commit type. Allowed: feat, fix, ..." |
 | Commit | Must be signed | "GPG signing required but unavailable" |
 | PR | Branch must be pushed | "Branch must be pushed before creating PR" |
+| PR | Cannot use --ready without existing PR | "No PR exists for this branch. Create one first." |
+| PR | Cannot use --comments without existing PR | "No PR exists for this branch." |
+| Comment Analysis | Requires --comments flag | "--analyze requires --comments flag" |
+| Comment Analysis | Probability score must be 0-100 or N/A | N/A (internal validation) |

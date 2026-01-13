@@ -61,6 +61,10 @@ Ensure the plugin is registered in your Claude Code configuration.
 | `/bkff:git-commit` | Commit and push changes |
 | `/bkff:git-sync [branch]` | Sync with main/branch |
 | `/bkff:git-pr` | Create/update pull request |
+| `/bkff:git-pr --draft` | Create draft PR (work in progress) |
+| `/bkff:git-pr --ready` | Mark draft PR ready for review |
+| `/bkff:git-pr --comments` | View review comments |
+| `/bkff:git-pr --comments --analyze` | Analyze comments for requirements compliance |
 
 ---
 
@@ -231,6 +235,121 @@ To start working:
 - ✓ Used .github/pull_request_template.md
 ```
 
+### Create Draft Pull Request
+
+When your work is in progress but you want early feedback:
+
+```
+> /bkff:git-pr --draft
+
+## Draft Pull Request Created
+
+### Pull Request
+- **Number**: #128
+- **Title**: feat(dashboard): add analytics widget
+- **Status**: Draft (not ready for review)
+- **URL**: https://github.com/owner/repo/pull/128
+
+Draft PR created. Use `/bkff:git-pr --ready` when ready for review.
+```
+
+### Mark Draft PR Ready for Review
+
+When your work is complete and ready for full review:
+
+```
+> /bkff:git-pr --ready
+
+## Pull Request Ready for Review
+
+### Pull Request
+- **Number**: #128
+- **Title**: feat(dashboard): add analytics widget
+- **Status**: Open (was Draft)
+- **URL**: https://github.com/owner/repo/pull/128
+
+PR is now ready for review.
+```
+
+### View Review Comments
+
+After reviewers have commented on your PR:
+
+```
+> /bkff:git-pr --comments
+
+## Review Comments for PR #127
+
+### Summary
+- **Total Comments**: 3
+- **Reviewers**: @alice (2), @bob (1)
+
+### Comments
+
+#### @alice on src/dashboard/widget.ts:45
+> Consider adding error handling for the API call.
+
+---
+
+#### @alice on src/dashboard/widget.ts:78
+> This calculation could be simplified.
+
+---
+
+#### @bob on (general)
+> Looks good overall. Minor suggestions above.
+```
+
+### Analyze Review Comments
+
+Get AI-powered analysis of which comments are most important:
+
+```
+> /bkff:git-pr --comments --analyze
+
+## Review Comments Analysis for PR #127
+
+### Summary
+- **Total Comments**: 3
+- **Requirements-Related**: 1 (33%)
+- **Stylistic/Preference**: 1 (33%)
+- **General Feedback**: 1 (33%)
+
+### Analysis
+
+#### @alice on src/dashboard/widget.ts:45
+> Consider adding error handling for the API call.
+
+**Compliance Score**: 85%
+**Category**: Requirements-Related
+**Rationale**: Addresses FR-031 (clear error messages) and security principle of proper error handling.
+**Requirements**: FR-031
+
+---
+
+#### @alice on src/dashboard/widget.ts:78
+> This calculation could be simplified.
+
+**Compliance Score**: 20%
+**Category**: Stylistic/Preference
+**Rationale**: Code simplification suggestion. No direct impact on requirements.
+
+---
+
+#### @bob on (general)
+> Looks good overall. Minor suggestions above.
+
+**Compliance Score**: N/A
+**Category**: General Feedback
+**Rationale**: Summary comment without actionable code change.
+
+---
+
+### Recommendation
+**Priority comments to address**:
+1. src/dashboard/widget.ts:45 (85% compliance score) - Error handling
+```
+
 ---
 
 ## Error Handling
@@ -350,3 +469,9 @@ Create `.github/pull_request_template.md` for consistent PR descriptions:
 4. **Use beads issues**: Creating branches from beads issues ensures proper tracking and naming conventions.
 
 5. **Review before pushing**: The commit command shows what will be committed before pushing.
+
+6. **Use draft PRs for early feedback**: Create draft PRs with `--draft` when you want reviewer input before the work is complete.
+
+7. **Analyze review comments**: Use `--comments --analyze` to prioritize which review comments to address first based on requirements compliance.
+
+8. **Spec files improve analysis**: When a `specs/<branch>/spec.md` file exists, comment analysis uses the actual functional requirements for more accurate scoring.
