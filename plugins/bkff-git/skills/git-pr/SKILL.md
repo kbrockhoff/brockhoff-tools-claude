@@ -11,6 +11,10 @@ arguments:
     type: flag
     required: false
     description: Create as draft PR
+  - name: --ready
+    type: flag
+    required: false
+    description: Mark draft PR as ready for review
 ---
 
 # Manage Pull Request
@@ -20,7 +24,7 @@ Creates or updates a pull request for the current branch. Uses the repository's 
 ## Usage
 
 ```
-/bkff:git-pr [--title "PR title"] [--draft]
+/bkff:git-pr [--title "PR title"] [--draft] [--ready]
 ```
 
 ## Options
@@ -29,6 +33,7 @@ Creates or updates a pull request for the current branch. Uses the repository's 
 |--------|-------------|
 | `--title` | Override the auto-generated PR title |
 | `--draft` | Create as a draft pull request |
+| `--ready` | Mark existing draft PR as ready for review |
 
 ## What It Does
 
@@ -73,6 +78,7 @@ source "$PLUGIN_DIR/lib/git-helpers.sh"
 # Parse arguments
 CUSTOM_TITLE=""
 DRAFT_FLAG=""
+READY_FLAG=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --title|-t)
@@ -81,6 +87,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --draft|-d)
             DRAFT_FLAG="--draft"
+            shift
+            ;;
+        --ready|-r)
+            READY_FLAG="true"
             shift
             ;;
         *)
@@ -100,6 +110,49 @@ MAIN_BRANCH=$(get_main_branch)
 # FR-033: Cannot create PR from main branch
 if [[ "$CURRENT_BRANCH" == "$MAIN_BRANCH" || "$CURRENT_BRANCH" == "master" ]]; then
     error_exit "Cannot create PR from $CURRENT_BRANCH branch"
+fi
+
+# FR-035: Handle --ready flag to mark draft PR as ready for review
+if [[ -n "$READY_FLAG" ]]; then
+    # Check if PR exists
+    EXISTING_PR=$(gh pr list --head "$CURRENT_BRANCH" --json number,url,title,isDraft --jq '.[0]' 2>/dev/null || echo "")
+
+    if [[ -z "$EXISTING_PR" ]]; then
+        error_exit "No PR exists for this branch. Create one first."
+    fi
+
+    PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+    PR_URL=$(echo "$EXISTING_PR" | jq -r '.url')
+    PR_TITLE=$(echo "$EXISTING_PR" | jq -r '.title')
+    IS_DRAFT=$(echo "$EXISTING_PR" | jq -r '.isDraft')
+
+    if [[ "$IS_DRAFT" == "true" ]]; then
+        # Mark as ready using gh pr ready
+        if gh pr ready "$PR_NUMBER" 2>/dev/null; then
+            echo "## Pull Request Ready for Review"
+            echo ""
+            echo "### Pull Request"
+            echo "- **Number**: #$PR_NUMBER"
+            echo "- **Title**: $PR_TITLE"
+            echo "- **Status**: Open (was Draft)"
+            echo "- **URL**: $PR_URL"
+            echo ""
+            success "PR is now ready for review."
+        else
+            error_exit "Failed to mark PR as ready. Check GitHub authentication."
+        fi
+    else
+        # FR-036: Handle --ready on already-ready PR
+        echo "## Pull Request Already Ready"
+        echo ""
+        echo "### Pull Request"
+        echo "- **Number**: #$PR_NUMBER"
+        echo "- **Title**: $PR_TITLE"
+        echo "- **Status**: Open"
+        echo ""
+        info "PR is already ready for review. No changes made."
+    fi
+    exit 0
 fi
 
 # FR-034: Adjust header for draft PRs
