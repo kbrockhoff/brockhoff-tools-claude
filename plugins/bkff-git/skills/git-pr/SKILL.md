@@ -19,6 +19,10 @@ arguments:
     type: flag
     required: false
     description: Retrieve and display PR review comments
+  - name: --analyze
+    type: flag
+    required: false
+    description: Analyze comments for requirements compliance (requires --comments)
 ---
 
 # Manage Pull Request
@@ -28,7 +32,7 @@ Creates or updates a pull request for the current branch. Uses the repository's 
 ## Usage
 
 ```
-/bkff:git-pr [--title "PR title"] [--draft] [--ready] [--comments]
+/bkff:git-pr [--title "PR title"] [--draft] [--ready] [--comments] [--analyze]
 ```
 
 ## Options
@@ -39,6 +43,7 @@ Creates or updates a pull request for the current branch. Uses the repository's 
 | `--draft` | Create as a draft pull request |
 | `--ready` | Mark existing draft PR as ready for review |
 | `--comments` | Retrieve and display PR review comments |
+| `--analyze` | Analyze comments for requirements compliance (requires `--comments`) |
 
 ## What It Does
 
@@ -79,12 +84,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 source "$PLUGIN_DIR/lib/common.sh"
 source "$PLUGIN_DIR/lib/git-helpers.sh"
+source "$PLUGIN_DIR/lib/pr-analysis.sh"
 
 # Parse arguments
 CUSTOM_TITLE=""
 DRAFT_FLAG=""
 READY_FLAG=""
 COMMENTS_FLAG=""
+ANALYZE_FLAG=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --title|-t)
@@ -103,11 +110,20 @@ while [[ $# -gt 0 ]]; do
             COMMENTS_FLAG="true"
             shift
             ;;
+        --analyze|-a)
+            ANALYZE_FLAG="true"
+            shift
+            ;;
         *)
             shift
             ;;
     esac
 done
+
+# FR-040: Validate --analyze requires --comments
+if [[ -n "$ANALYZE_FLAG" && -z "$COMMENTS_FLAG" ]]; then
+    error_exit "--analyze requires --comments flag"
+fi
 
 require_worktree
 
@@ -190,7 +206,12 @@ if [[ -n "$COMMENTS_FLAG" ]]; then
     ISSUE_COUNT=$(echo "$ISSUE_COMMENTS" | jq 'length')
     TOTAL_COMMENTS=$((REVIEW_COUNT + ISSUE_COUNT))
 
-    echo "## Review Comments for PR #$PR_NUMBER"
+    # FR-040: Adjust header for analysis mode
+    if [[ -n "$ANALYZE_FLAG" ]]; then
+        echo "## Review Comments Analysis for PR #$PR_NUMBER"
+    else
+        echo "## Review Comments for PR #$PR_NUMBER"
+    fi
     echo ""
 
     # FR-039: Handle no comments case
@@ -199,26 +220,119 @@ if [[ -n "$COMMENTS_FLAG" ]]; then
         exit 0
     fi
 
+    # FR-044: Detect spec file for analysis
+    SPEC_FILE=""
+    if [[ -n "$ANALYZE_FLAG" ]]; then
+        SPEC_FILE=$(detect_spec_file "$CURRENT_BRANCH")
+    fi
+
     # FR-038: Calculate reviewer attribution
-    # Combine reviewers from both comment types
     ALL_REVIEWERS=$(echo "$REVIEW_COMMENTS $ISSUE_COMMENTS" | jq -s 'add | [.[].user.login] | group_by(.) | map({user: .[0], count: length}) | sort_by(-.count)')
     REVIEWER_SUMMARY=$(echo "$ALL_REVIEWERS" | jq -r 'map("@\(.user) (\(.count))") | join(", ")')
 
     echo "### Summary"
     echo "- **Total Comments**: $TOTAL_COMMENTS"
     echo "- **Reviewers**: $REVIEWER_SUMMARY"
+
+    # Analysis-specific summary
+    if [[ -n "$ANALYZE_FLAG" ]]; then
+        if [[ -n "$SPEC_FILE" ]]; then
+            echo "- **Spec File**: Found ($(basename "$(dirname "$SPEC_FILE")")/spec.md)"
+        else
+            echo "- **Spec File**: Not found (evaluating against general principles)"
+        fi
+    fi
     echo ""
+
     echo "### Comments"
     echo ""
 
+    # Track high-priority comments for recommendation
+    declare -a PRIORITY_COMMENTS=()
+
+    # Function to display a comment with optional analysis
+    display_comment() {
+        local user="$1"
+        local location="$2"
+        local body="$3"
+
+        echo "#### @$user on $location"
+        echo "> ${body//$'\n'/$'\n'> }"
+        echo ""
+
+        if [[ -n "$ANALYZE_FLAG" ]]; then
+            # FR-041: Compliance probability scoring
+            local category
+            category=$(categorize_comment "$body" "$SPEC_FILE")
+            local score
+            score=$(estimate_compliance_score "$body" "$category")
+
+            echo "**Compliance Score**: $score"
+            echo "**Category**: $category"
+
+            # FR-042: Rationale generation
+            local rationale=""
+            case "$category" in
+                "Security-Related")
+                    rationale="Addresses security best practices or vulnerability prevention."
+                    ;;
+                "Requirements-Related")
+                    if [[ -n "$SPEC_FILE" ]]; then
+                        rationale="May relate to functional requirements in spec file."
+                    else
+                        rationale="Substantive feedback that may impact functionality."
+                    fi
+                    ;;
+                "Stylistic/Preference")
+                    rationale="Code style or naming suggestion. No impact on requirements compliance."
+                    ;;
+                "General Feedback")
+                    rationale="Summary or approval comment without actionable code change."
+                    ;;
+            esac
+            echo "**Rationale**: $rationale"
+
+            # Track high-priority comments (score >= 80)
+            if [[ "$score" != "N/A" && "$score" -ge 80 ]]; then
+                PRIORITY_COMMENTS+=("$location ($score% - $category)")
+            fi
+        fi
+
+        echo ""
+        echo "---"
+        echo ""
+    }
+
     # Display review comments (line-specific)
     if [[ "$REVIEW_COUNT" -gt 0 ]]; then
-        echo "$REVIEW_COMMENTS" | jq -r '.[] | "#### @\(.user.login) on \(.path):\(.line // .original_line // "N/A")\n> \(.body | gsub("\n"; "\n> "))\n\n---\n"'
+        while IFS= read -r comment_json; do
+            user=$(echo "$comment_json" | jq -r '.user.login')
+            path=$(echo "$comment_json" | jq -r '.path')
+            line=$(echo "$comment_json" | jq -r '.line // .original_line // "N/A"')
+            body=$(echo "$comment_json" | jq -r '.body')
+            display_comment "$user" "$path:$line" "$body"
+        done < <(echo "$REVIEW_COMMENTS" | jq -c '.[]')
     fi
 
     # Display issue comments (general)
     if [[ "$ISSUE_COUNT" -gt 0 ]]; then
-        echo "$ISSUE_COMMENTS" | jq -r '.[] | "#### @\(.user.login) on (general)\n> \(.body | gsub("\n"; "\n> "))\n\n---\n"'
+        while IFS= read -r comment_json; do
+            user=$(echo "$comment_json" | jq -r '.user.login')
+            body=$(echo "$comment_json" | jq -r '.body')
+            display_comment "$user" "(general)" "$body"
+        done < <(echo "$ISSUE_COMMENTS" | jq -c '.[]')
+    fi
+
+    # FR-081: Analysis summary with priority recommendations
+    if [[ -n "$ANALYZE_FLAG" && ${#PRIORITY_COMMENTS[@]} -gt 0 ]]; then
+        echo "### Recommendation"
+        echo "**Priority comments to address**:"
+        local i=1
+        for comment in "${PRIORITY_COMMENTS[@]}"; do
+            echo "$i. $comment"
+            ((i++))
+        done
+        echo ""
     fi
 
     exit 0
