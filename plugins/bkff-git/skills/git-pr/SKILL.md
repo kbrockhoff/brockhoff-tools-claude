@@ -193,13 +193,35 @@ if [[ -n "$COMMENTS_FLAG" ]]; then
     PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
 
     # Get repository info for API calls
-    REPO_INFO=$(gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"')
+    REPO_INFO=$(gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"') || error_exit "Failed to get repository info. Check network connection."
 
-    # Fetch review comments (line-specific comments on diffs)
-    REVIEW_COMMENTS=$(gh api "repos/$REPO_INFO/pulls/$PR_NUMBER/comments" 2>/dev/null || echo "[]")
+    # T084: Fetch review comments with network failure handling
+    API_ERROR=""
+    REVIEW_COMMENTS=$(gh api "repos/$REPO_INFO/pulls/$PR_NUMBER/comments" 2>&1) || API_ERROR="$REVIEW_COMMENTS"
+    if [[ -n "$API_ERROR" ]]; then
+        if [[ "$API_ERROR" == *"connect"* ]] || [[ "$API_ERROR" == *"network"* ]] || [[ "$API_ERROR" == *"timeout"* ]]; then
+            error_exit "Network error fetching PR comments. Check your internet connection."
+        elif [[ "$API_ERROR" == *"404"* ]]; then
+            REVIEW_COMMENTS="[]"
+        else
+            warn "Failed to fetch review comments: $API_ERROR"
+            REVIEW_COMMENTS="[]"
+        fi
+    fi
 
-    # Fetch issue comments (general PR comments)
-    ISSUE_COMMENTS=$(gh api "repos/$REPO_INFO/issues/$PR_NUMBER/comments" 2>/dev/null || echo "[]")
+    # T084: Fetch issue comments with network failure handling
+    API_ERROR=""
+    ISSUE_COMMENTS=$(gh api "repos/$REPO_INFO/issues/$PR_NUMBER/comments" 2>&1) || API_ERROR="$ISSUE_COMMENTS"
+    if [[ -n "$API_ERROR" ]]; then
+        if [[ "$API_ERROR" == *"connect"* ]] || [[ "$API_ERROR" == *"network"* ]] || [[ "$API_ERROR" == *"timeout"* ]]; then
+            error_exit "Network error fetching PR comments. Check your internet connection."
+        elif [[ "$API_ERROR" == *"404"* ]]; then
+            ISSUE_COMMENTS="[]"
+        else
+            warn "Failed to fetch issue comments: $API_ERROR"
+            ISSUE_COMMENTS="[]"
+        fi
+    fi
 
     # Count total comments
     REVIEW_COUNT=$(echo "$REVIEW_COMMENTS" | jq 'length')
