@@ -102,7 +102,12 @@ if [[ "$CURRENT_BRANCH" == "$MAIN_BRANCH" || "$CURRENT_BRANCH" == "master" ]]; t
     error_exit "Cannot create PR from $CURRENT_BRANCH branch"
 fi
 
-echo "## Pull Request"
+# FR-034: Adjust header for draft PRs
+if [[ -n "$DRAFT_FLAG" ]]; then
+    echo "## Draft Pull Request Created"
+else
+    echo "## Pull Request"
+fi
 echo ""
 
 # FR-024: Check if PR already exists
@@ -193,11 +198,22 @@ else
         PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$' || echo "")
         echo "- **Number**: #$PR_NUMBER"
         echo "- **Title**: $CUSTOM_TITLE"
-        [[ -n "$DRAFT_FLAG" ]] && echo "- **Status**: Draft" || echo "- **Status**: Open"
+        [[ -n "$DRAFT_FLAG" ]] && echo "- **Status**: Draft (not ready for review)" || echo "- **Status**: Open"
         echo "- **URL**: $PR_URL"
         [[ -n "$TEMPLATE_FILE" ]] && echo "- **Template**: Used $TEMPLATE_FILE"
         echo ""
-        success "PR created successfully."
+
+        # Display commits included in the PR
+        echo "### Commits Included"
+        git log "$MAIN_BRANCH..HEAD" --format="%s" | tac | nl -w1 -s'. '
+        echo ""
+
+        # FR-034: Different success message for draft PRs
+        if [[ -n "$DRAFT_FLAG" ]]; then
+            success "Draft PR created. Use \`/bkff:git-pr --ready\` when ready for review."
+        else
+            success "PR created successfully. Awaiting review."
+        fi
     else
         error_exit "Failed to create PR. Check GitHub authentication.\n$PR_URL"
     fi
