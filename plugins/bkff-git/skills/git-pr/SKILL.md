@@ -15,6 +15,10 @@ arguments:
     type: flag
     required: false
     description: Mark draft PR as ready for review
+  - name: --comments
+    type: flag
+    required: false
+    description: Retrieve and display PR review comments
 ---
 
 # Manage Pull Request
@@ -24,7 +28,7 @@ Creates or updates a pull request for the current branch. Uses the repository's 
 ## Usage
 
 ```
-/bkff:git-pr [--title "PR title"] [--draft] [--ready]
+/bkff:git-pr [--title "PR title"] [--draft] [--ready] [--comments]
 ```
 
 ## Options
@@ -34,6 +38,7 @@ Creates or updates a pull request for the current branch. Uses the repository's 
 | `--title` | Override the auto-generated PR title |
 | `--draft` | Create as a draft pull request |
 | `--ready` | Mark existing draft PR as ready for review |
+| `--comments` | Retrieve and display PR review comments |
 
 ## What It Does
 
@@ -79,6 +84,7 @@ source "$PLUGIN_DIR/lib/git-helpers.sh"
 CUSTOM_TITLE=""
 DRAFT_FLAG=""
 READY_FLAG=""
+COMMENTS_FLAG=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --title|-t)
@@ -91,6 +97,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --ready|-r)
             READY_FLAG="true"
+            shift
+            ;;
+        --comments|-c)
+            COMMENTS_FLAG="true"
             shift
             ;;
         *)
@@ -152,6 +162,65 @@ if [[ -n "$READY_FLAG" ]]; then
         echo ""
         info "PR is already ready for review. No changes made."
     fi
+    exit 0
+fi
+
+# FR-037: Handle --comments flag to retrieve PR review comments
+if [[ -n "$COMMENTS_FLAG" ]]; then
+    # Check if PR exists
+    EXISTING_PR=$(gh pr list --head "$CURRENT_BRANCH" --json number,url --jq '.[0]' 2>/dev/null || echo "")
+
+    if [[ -z "$EXISTING_PR" ]]; then
+        error_exit "No PR exists for this branch."
+    fi
+
+    PR_NUMBER=$(echo "$EXISTING_PR" | jq -r '.number')
+
+    # Get repository info for API calls
+    REPO_INFO=$(gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"')
+
+    # Fetch review comments (line-specific comments on diffs)
+    REVIEW_COMMENTS=$(gh api "repos/$REPO_INFO/pulls/$PR_NUMBER/comments" 2>/dev/null || echo "[]")
+
+    # Fetch issue comments (general PR comments)
+    ISSUE_COMMENTS=$(gh api "repos/$REPO_INFO/issues/$PR_NUMBER/comments" 2>/dev/null || echo "[]")
+
+    # Count total comments
+    REVIEW_COUNT=$(echo "$REVIEW_COMMENTS" | jq 'length')
+    ISSUE_COUNT=$(echo "$ISSUE_COMMENTS" | jq 'length')
+    TOTAL_COMMENTS=$((REVIEW_COUNT + ISSUE_COUNT))
+
+    echo "## Review Comments for PR #$PR_NUMBER"
+    echo ""
+
+    # FR-039: Handle no comments case
+    if [[ "$TOTAL_COMMENTS" -eq 0 ]]; then
+        info "No review comments exist for this pull request."
+        exit 0
+    fi
+
+    # FR-038: Calculate reviewer attribution
+    # Combine reviewers from both comment types
+    ALL_REVIEWERS=$(echo "$REVIEW_COMMENTS $ISSUE_COMMENTS" | jq -s 'add | [.[].user.login] | group_by(.) | map({user: .[0], count: length}) | sort_by(-.count)')
+    REVIEWER_SUMMARY=$(echo "$ALL_REVIEWERS" | jq -r 'map("@\(.user) (\(.count))") | join(", ")')
+
+    echo "### Summary"
+    echo "- **Total Comments**: $TOTAL_COMMENTS"
+    echo "- **Reviewers**: $REVIEWER_SUMMARY"
+    echo ""
+    echo "### Comments"
+    echo ""
+
+    # Display review comments (line-specific)
+    if [[ "$REVIEW_COUNT" -gt 0 ]]; then
+        echo "$REVIEW_COMMENTS" | jq -r '.[] | "#### @\(.user.login) on \(.path):\(.line // .original_line // "N/A")\n> \(.body | gsub("\n"; "\n> "))\n\n---\n"'
+    fi
+
+    # Display issue comments (general)
+    if [[ "$ISSUE_COUNT" -gt 0 ]]; then
+        echo "$ISSUE_COMMENTS" | jq -r '.[] | "#### @\(.user.login) on (general)\n> \(.body | gsub("\n"; "\n> "))\n\n---\n"'
+    fi
+
     exit 0
 fi
 
