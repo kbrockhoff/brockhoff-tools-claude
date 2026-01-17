@@ -1,5 +1,5 @@
 {
-  "name": "brockhoff-cloud",
+  "name": "brockhoff-tools",
   "owner": "kbrockhoff",
   "plugins": [
     {
@@ -38,6 +38,43 @@
       ],
       "has_readme": true,
       "has_mcp": true
+    },
+    {
+      "name": "bkff-git",
+      "description": "Git lifecycle commands for worktree-based development: status, branch, commit, sync, and PR management",
+      "version": "0.1.0",
+      "commands": [],
+      "skills": [
+        {
+          "name": "git-st",
+          "id": "git-st",
+          "description": "Check development status - uncommitted changes, last commit, beads tasks, and PR status"
+        },
+        {
+          "name": "git-branch",
+          "id": "git-branch",
+          "description": "Create a new feature branch from a beads issue with proper prefix, worktree, and beads initialization"
+        },
+        {
+          "name": "git-commit",
+          "id": "git-commit",
+          "description": "Commit all changes with validation, conventional commit message, GPG signing, and push to origin"
+        },
+        {
+          "name": "git-sync",
+          "id": "git-sync",
+          "description": "Sync with remote using smart rebase/merge selection based on push status"
+        },
+        {
+          "name": "git-pr",
+          "id": "git-pr",
+          "description": "Create or update a pull request for the current branch"
+        }
+      ],
+      "hooks": [],
+      "agents": [],
+      "has_readme": true,
+      "has_mcp": false
     }
   ]
 }
