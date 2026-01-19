@@ -39,7 +39,7 @@ The repository is structured as a [Claude Plugin Marketplace](https://docs.claud
 ```
 .
 ├── plugins/                  # Contains all the plugins
-│   └── example-plugin/       # An example plugin
+│   └── bkff-git/             # Git lifecycle plugin
 ├── scripts/                  # Helper scripts for build and docs
 ├── .claude-plugin/           # Marketplace configuration
 │   └── marketplace.json

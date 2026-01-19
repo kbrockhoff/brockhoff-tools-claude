@@ -13,12 +13,12 @@ Add the marketplace to Claude Code:
 Install a specific plugin:
 
 ```
-/plugin install example-plugin@brockhoff-tools
+/plugin install bkff-git@brockhoff-tools
 ```
 
 ## Plugins
 
-- **example-plugin**: Example plugin demonstrating command structure
+- **bkff-git**: Git lifecycle commands for worktree-based development
 
 ## Development
 
