@@ -3,7 +3,6 @@
 This document lists all available Claude Code plugins and their commands in the ai-helpers repository.
 
 - [Bkff Git](#bkff-git-plugin)
-- [Example Plugin](#example-plugin-plugin)
 
 ### Bkff Git Plugin
 
@@ -17,12 +16,3 @@ Git lifecycle commands for worktree-based development: status, branch, commit, s
 - **`/bkff:git-pr` `[-t "title"] [-d]`** - Create or update pull request
 
 See [plugins/bkff-git/README.md](plugins/bkff-git/README.md) for detailed documentation.
-
-### Example Plugin Plugin
-
-Example plugin demonstrating command structure
-
-**Commands:**
-- **`/example-plugin:hello` `[name]`** - Say hello to someone
-
-See [plugins/example-plugin/README.md](plugins/example-plugin/README.md) for detailed documentation.
