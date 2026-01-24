@@ -405,3 +405,220 @@ exceeds_max_retries() {
     max=$(get_max_retries)
     [[ "$current" -ge "$max" ]]
 }
+
+# =============================================================================
+# Task Selection
+# =============================================================================
+
+# Select the highest priority ready task from beads
+# Returns: JSON object with beads_id, title, priority or empty if none
+select_ready_task() {
+    require_bd
+
+    # Get ready tasks from beads (no blockers, not in progress)
+    local ready_output
+    ready_output=$(bd ready --json 2>/dev/null || echo "[]")
+
+    if [[ "$ready_output" == "[]" || -z "$ready_output" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Filter to only tasks (not features or epics) and sort by priority
+    local task
+    task=$(echo "$ready_output" | jq -r '
+        [.[] | select(.type == "task")] |
+        sort_by(.priority) |
+        first // empty
+    ' 2>/dev/null)
+
+    if [[ -z "$task" || "$task" == "null" ]]; then
+        # Fall back to any ready issue if no tasks
+        task=$(echo "$ready_output" | jq -r '
+            sort_by(.priority) |
+            first // empty
+        ' 2>/dev/null)
+    fi
+
+    if [[ -z "$task" || "$task" == "null" ]]; then
+        echo ""
+        return 1
+    fi
+
+    echo "$task"
+}
+
+# Claim a task by setting it to in_progress
+# Usage: claim_task "$beads_id"
+claim_task() {
+    local beads_id="$1"
+
+    require_bd
+
+    bd update "$beads_id" --status=in_progress &>/dev/null || {
+        warn "Failed to claim task: $beads_id"
+        return 1
+    }
+
+    debug "Claimed task: $beads_id"
+}
+
+# Complete a task by closing it
+# Usage: close_task "$beads_id" ["$reason"]
+close_task() {
+    local beads_id="$1"
+    local reason="${2:-Completed by development loop}"
+
+    require_bd
+
+    bd close "$beads_id" --reason="$reason" &>/dev/null || {
+        warn "Failed to close task: $beads_id"
+        return 1
+    }
+
+    debug "Closed task: $beads_id"
+}
+
+# =============================================================================
+# Retry Logic
+# =============================================================================
+
+# Execute with exponential backoff retry
+# Usage: retry_with_backoff command [args...]
+# Returns: exit code of command (0 on success, 1 after max retries)
+retry_with_backoff() {
+    local max_retries
+    max_retries=$(get_max_retries)
+    local base_backoff
+    base_backoff=$(get_retry_backoff)
+
+    local attempt=0
+    local exit_code=0
+
+    while [[ $attempt -lt $max_retries ]]; do
+        # Run the command
+        set +e
+        "$@"
+        exit_code=$?
+        set -e
+
+        if [[ $exit_code -eq 0 ]]; then
+            return 0
+        fi
+
+        ((attempt++))
+
+        if [[ $attempt -lt $max_retries ]]; then
+            # Exponential backoff: base * 2^attempt
+            local backoff=$((base_backoff * (2 ** (attempt - 1))))
+            warn "Attempt $attempt failed, retrying in ${backoff}s..."
+            record_retry "Command failed with exit code $exit_code"
+            sleep "$backoff"
+        fi
+    done
+
+    return 1
+}
+
+# =============================================================================
+# Development Loop Cycle
+# =============================================================================
+
+# Run a single development loop cycle
+# Returns: 0 to continue, 1 to pause, 2 to stop (no tasks)
+run_loop_cycle() {
+    # Check if loop is still running
+    if ! is_loop_running; then
+        return 2
+    fi
+
+    # Select next ready task
+    local task
+    task=$(select_ready_task)
+
+    if [[ -z "$task" ]]; then
+        info "No ready tasks available"
+        return 2
+    fi
+
+    local beads_id title priority
+    beads_id=$(echo "$task" | jq -r '.id // .beads_id // empty')
+    title=$(echo "$task" | jq -r '.title // .subject // empty')
+    priority=$(echo "$task" | jq -r '.priority // 2')
+
+    if [[ -z "$beads_id" ]]; then
+        warn "Could not extract task ID"
+        return 1
+    fi
+
+    info "Selected task: $beads_id - $title (P$priority)"
+
+    # Claim the task
+    if ! claim_task "$beads_id"; then
+        record_retry "Failed to claim task $beads_id"
+        if exceeds_max_retries; then
+            pause_loop "Failed to claim task after max retries"
+            return 1
+        fi
+        return 0  # Continue to retry
+    fi
+
+    # Extract task_id from title if present (format: "T001 Title")
+    local task_id=""
+    if [[ "$title" =~ ^([Tt][0-9]+)[[:space:]] ]]; then
+        task_id="${BASH_REMATCH[1]}"
+    else
+        task_id="$beads_id"
+    fi
+
+    # Set as current task
+    set_current_task "$beads_id" "$task_id" "$title"
+
+    # Return success - the calling skill/agent should now work on this task
+    # The loop will be continued by the agent after task completion
+    echo ""
+    echo "─────────────────────────────────────"
+    echo -e "${BOLD}Working on:${NC} $title"
+    echo -e "${BOLD}Issue:${NC} $beads_id"
+    echo "─────────────────────────────────────"
+    echo ""
+    echo "The development loop has selected this task."
+    echo "Work on implementing the task, then run verification."
+    echo "When complete, the loop will automatically select the next task."
+    echo ""
+    echo "To pause: /bkff:cancelloop"
+
+    return 0
+}
+
+# Mark current task complete and continue loop
+# Usage: complete_and_continue
+complete_and_continue() {
+    local state
+    state=$(get_loop_state) || {
+        warn "No active loop"
+        return 1
+    }
+
+    local current_task
+    current_task=$(echo "$state" | jq '.current_task')
+
+    if [[ "$current_task" == "null" ]]; then
+        warn "No current task to complete"
+        return 1
+    fi
+
+    local beads_id
+    beads_id=$(echo "$current_task" | jq -r '.beads_id')
+
+    # Close the task in beads
+    close_task "$beads_id" "Completed by development loop"
+
+    # Mark complete in loop state
+    complete_current_task
+
+    success "Task completed: $beads_id"
+
+    # Continue to next task
+    run_loop_cycle
+}
