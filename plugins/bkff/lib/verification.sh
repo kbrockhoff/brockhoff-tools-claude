@@ -383,3 +383,130 @@ output_failures_json() {
     local result="$1"
     echo "$result" | jq '.failures'
 }
+
+# =============================================================================
+# Issue Type Verification Functions
+# =============================================================================
+
+# Verify a task (uses validate target)
+# Usage: verify_task "$beads_id"
+# Returns: JSON verification result
+verify_task() {
+    local beads_id="$1"
+
+    require_bd
+    require_acceptance_criteria "$beads_id"
+
+    info "Verifying task: $beads_id"
+    run_validate "$beads_id" "task"
+}
+
+# Verify a feature (uses verify target, checks child tasks)
+# Usage: verify_feature "$beads_id"
+# Returns: JSON verification result
+verify_feature() {
+    local beads_id="$1"
+
+    require_bd
+    require_acceptance_criteria "$beads_id"
+
+    # Check if all child tasks are closed
+    local children
+    children=$(bd show "$beads_id" --json 2>/dev/null | jq -r '.children // []')
+
+    if [[ "$children" != "[]" && -n "$children" ]]; then
+        local open_children
+        open_children=$(echo "$children" | jq '[.[] | select(.status != "closed")] | length')
+
+        if [[ "$open_children" -gt 0 ]]; then
+            warn "Feature has $open_children open child task(s)"
+            # Create a failure for open children
+            local failure
+            failure=$(create_failure "beads" "null" "$FAILURE_TYPE_STANDARDS" "$SEVERITY_ERROR" \
+                "Feature has $open_children open child task(s) that must be completed first" \
+                "Close all child tasks before verifying feature")
+
+            local result
+            result=$(jq -n \
+                --arg issue_id "$beads_id" \
+                --arg timestamp "$(get_timestamp)" \
+                --argjson failure "$failure" \
+                '{
+                    issue_id: $issue_id,
+                    issue_type: "feature",
+                    target: "verify",
+                    status: "fail",
+                    timestamp: $timestamp,
+                    acceptance_criteria_checked: true,
+                    failures: [$failure],
+                    summary: { tests: {passed: 0, failed: 0}, quality: {errors: 0, warnings: 0}, docs: {complete: true}, security: {issues: 0} }
+                }')
+            echo "$result"
+            return 1
+        fi
+    fi
+
+    info "Verifying feature: $beads_id"
+    run_verify "$beads_id" "feature"
+}
+
+# Verify an epic (uses verify target, checks child features)
+# Usage: verify_epic "$beads_id"
+# Returns: JSON verification result
+verify_epic() {
+    local beads_id="$1"
+
+    require_bd
+    require_acceptance_criteria "$beads_id"
+
+    # Check if all child features are closed
+    local children
+    children=$(bd show "$beads_id" --json 2>/dev/null | jq -r '.children // []')
+
+    if [[ "$children" != "[]" && -n "$children" ]]; then
+        local open_children
+        open_children=$(echo "$children" | jq '[.[] | select(.status != "closed")] | length')
+
+        if [[ "$open_children" -gt 0 ]]; then
+            warn "Epic has $open_children open child feature(s)"
+            local failure
+            failure=$(create_failure "beads" "null" "$FAILURE_TYPE_STANDARDS" "$SEVERITY_ERROR" \
+                "Epic has $open_children open child feature(s) that must be completed first" \
+                "Close all child features before verifying epic")
+
+            local result
+            result=$(jq -n \
+                --arg issue_id "$beads_id" \
+                --arg timestamp "$(get_timestamp)" \
+                --argjson failure "$failure" \
+                '{
+                    issue_id: $issue_id,
+                    issue_type: "epic",
+                    target: "verify",
+                    status: "fail",
+                    timestamp: $timestamp,
+                    acceptance_criteria_checked: true,
+                    failures: [$failure],
+                    summary: { tests: {passed: 0, failed: 0}, quality: {errors: 0, warnings: 0}, docs: {complete: true}, security: {issues: 0} }
+                }')
+            echo "$result"
+            return 1
+        fi
+    fi
+
+    info "Verifying epic: $beads_id"
+    run_verify "$beads_id" "epic"
+}
+
+# Verify a bug fix (uses validate target)
+# Usage: verify_bug "$beads_id"
+# Returns: JSON verification result
+verify_bug() {
+    local beads_id="$1"
+
+    require_bd
+    require_acceptance_criteria "$beads_id"
+
+    info "Verifying bug fix: $beads_id"
+    run_validate "$beads_id" "bug"
+}
