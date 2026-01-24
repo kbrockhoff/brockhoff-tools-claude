@@ -202,7 +202,10 @@ complete_current_task() {
     local duration=0
     if [[ -n "$started_at" ]]; then
         local start_epoch end_epoch
-        start_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$started_at" "+%s" 2>/dev/null || echo 0)
+        # Try BSD/macOS format first, then GNU/Linux format
+        start_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$started_at" "+%s" 2>/dev/null || \
+                      date -d "$started_at" "+%s" 2>/dev/null || \
+                      echo 0)
         end_epoch=$(date -u "+%s")
         duration=$((end_epoch - start_epoch))
     fi
