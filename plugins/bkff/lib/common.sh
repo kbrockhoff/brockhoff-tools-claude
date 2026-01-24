@@ -204,7 +204,7 @@ tasks_exist() {
 # Check if jq is available
 require_jq() {
     if ! command -v jq &>/dev/null; then
-        error_exit "jq is required but not installed. Install with: brew install jq"
+        error_exit "jq is required but not installed. Please install it from https://jqlang.github.io/jq/download/"
     fi
 }
 
