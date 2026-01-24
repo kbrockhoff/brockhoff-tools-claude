@@ -1,0 +1,11 @@
+{
+  "name": "bkff",
+  "description": "Spec-driven development workflows: compliance checking, task-to-issue conversion, agentic development loops, verification skills, ADR generation, test generation, README generation, and PR feedback handling",
+  "version": "0.1.0",
+  "author": {
+    "name": "kbrockhoff"
+  },
+  "repository": "https://github.com/kbrockhoff/brockhoff-tools-claude",
+  "license": "MIT",
+  "keywords": ["spec-driven", "compliance", "beads", "verification", "adr", "testing"]
+}
