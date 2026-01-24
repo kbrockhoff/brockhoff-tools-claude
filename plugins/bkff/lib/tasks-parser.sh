@@ -323,3 +323,207 @@ print_tasks() {
         fi
     done
 }
+
+# =============================================================================
+# Beads Issue Conversion Functions
+# =============================================================================
+
+# Map task type to beads issue type
+# Usage: get_issue_type "$phase"
+get_issue_type() {
+    local phase="$1"
+    # Features/epics are typically in setup phases, tasks are in implementation
+    if [[ "$phase" =~ [Ss]etup|[Ff]oundation ]]; then
+        echo "task"
+    else
+        echo "task"
+    fi
+}
+
+# Create a single beads issue from a task
+# Usage: create_beads_issue "$task_json" "$parent_id"
+# Returns: beads issue ID
+create_beads_issue() {
+    local task_json="$1"
+    local parent_id="${2:-}"
+
+    require_bd
+
+    local task_id title description priority phase user_story
+    task_id=$(echo "$task_json" | jq -r '.task_id')
+    title=$(echo "$task_json" | jq -r '.title')
+    description=$(echo "$task_json" | jq -r '.description // ""')
+    priority=$(echo "$task_json" | jq -r '.priority')
+    phase=$(echo "$task_json" | jq -r '.phase // ""')
+    user_story=$(echo "$task_json" | jq -r '.user_story // ""')
+
+    # Build full title with task ID
+    local full_title="$task_id $title"
+
+    # Build description with metadata
+    local full_description="$description"
+    if [[ -n "$phase" ]]; then
+        full_description="Phase: $phase"$'\n'"$full_description"
+    fi
+    if [[ -n "$user_story" ]]; then
+        full_description="User Story: $user_story"$'\n'"$full_description"
+    fi
+
+    # Create the issue
+    local bd_args=(
+        --title="$full_title"
+        --type=task
+        --priority="$priority"
+    )
+
+    if [[ -n "$full_description" ]]; then
+        bd_args+=(--description="$full_description")
+    fi
+
+    if [[ -n "$parent_id" ]]; then
+        bd_args+=(--parent="$parent_id")
+    fi
+
+    # Run bd create and capture the issue ID
+    local output
+    output=$(bd create "${bd_args[@]}" 2>&1)
+
+    # Extract issue ID from output (format: "Created issue: beads-xxx")
+    local issue_id
+    issue_id=$(echo "$output" | grep -oE 'beads-[a-z0-9]+|tool-[a-z0-9.]+' | head -1)
+
+    if [[ -z "$issue_id" ]]; then
+        warn "Failed to create issue for $task_id: $output"
+        echo ""
+        return 1
+    fi
+
+    echo "$issue_id"
+}
+
+# Add dependency relationship between beads issues
+# Usage: add_beads_dependency "$blocker_id" "$blocked_id"
+add_beads_dependency() {
+    local blocker_id="$1"
+    local blocked_id="$2"
+
+    require_bd
+
+    # In beads: blocked_id depends on blocker_id
+    # So blocker blocks blocked
+    bd dep add "$blocked_id" "$blocker_id" &>/dev/null || {
+        warn "Failed to add dependency: $blocked_id depends on $blocker_id"
+        return 1
+    }
+}
+
+# Convert all parsed tasks to beads issues
+# Usage: convert_tasks_to_issues "$tasks_json" ["$parent_id"]
+# Returns: JSON mapping of task_id -> beads_issue_id
+convert_tasks_to_issues() {
+    local tasks_json="$1"
+    local parent_id="${2:-}"
+
+    require_bd
+    require_beads
+
+    local task_count
+    task_count=$(get_task_count "$tasks_json")
+
+    if [[ "$task_count" -eq 0 ]]; then
+        warn "No tasks to convert"
+        echo "{}"
+        return 0
+    fi
+
+    # Validate dependencies first
+    if ! validate_dependencies "$tasks_json"; then
+        error_exit "Invalid task dependencies detected"
+    fi
+
+    if ! check_circular_deps "$tasks_json"; then
+        error_exit "Circular dependencies detected"
+    fi
+
+    print_header "Converting $task_count tasks to beads issues"
+
+    # Mapping of task_id -> beads_issue_id
+    local mapping="{}"
+    local created=0
+    local failed=0
+
+    # First pass: create all issues
+    while IFS= read -r task_id; do
+        local task
+        task=$(get_task_by_id "$tasks_json" "$task_id")
+
+        local issue_id
+        issue_id=$(create_beads_issue "$task" "$parent_id")
+
+        if [[ -n "$issue_id" ]]; then
+            mapping=$(echo "$mapping" | jq --arg tid "$task_id" --arg iid "$issue_id" '. + {($tid): $iid}')
+            ((created++))
+            echo -e "  ${GREEN}✓${NC} $task_id -> $issue_id"
+        else
+            ((failed++))
+            echo -e "  ${RED}✗${NC} $task_id (failed to create)"
+        fi
+    done < <(echo "$tasks_json" | jq -r '.[].task_id')
+
+    # Second pass: add dependencies
+    print_header "Adding dependencies"
+    local deps_added=0
+
+    while IFS= read -r task_id; do
+        local task
+        task=$(get_task_by_id "$tasks_json" "$task_id")
+
+        local blocked_issue_id
+        blocked_issue_id=$(echo "$mapping" | jq -r --arg tid "$task_id" '.[$tid] // empty')
+
+        if [[ -z "$blocked_issue_id" ]]; then
+            continue
+        fi
+
+        # Get dependencies for this task
+        local deps
+        deps=$(echo "$task" | jq -r '.depends_on[]' 2>/dev/null || true)
+
+        while IFS= read -r dep_task_id; do
+            if [[ -z "$dep_task_id" ]]; then
+                continue
+            fi
+
+            local blocker_issue_id
+            blocker_issue_id=$(echo "$mapping" | jq -r --arg tid "$dep_task_id" '.[$tid] // empty')
+
+            if [[ -n "$blocker_issue_id" ]]; then
+                if add_beads_dependency "$blocker_issue_id" "$blocked_issue_id"; then
+                    ((deps_added++))
+                    echo -e "  ${GREEN}✓${NC} $blocked_issue_id depends on $blocker_issue_id"
+                fi
+            else
+                warn "Dependency $dep_task_id not found in mapping for $task_id"
+            fi
+        done <<< "$deps"
+    done < <(echo "$tasks_json" | jq -r '.[].task_id')
+
+    print_divider
+    echo "Created: $created issues"
+    echo "Failed: $failed issues"
+    echo "Dependencies: $deps_added added"
+
+    echo "$mapping"
+}
+
+# Convert tasks from a file to beads issues
+# Usage: convert_tasks_file_to_issues "/path/to/tasks.md" ["$parent_id"]
+convert_tasks_file_to_issues() {
+    local file="$1"
+    local parent_id="${2:-}"
+
+    local tasks_json
+    tasks_json=$(parse_tasks_file "$file")
+
+    convert_tasks_to_issues "$tasks_json" "$parent_id"
+}
