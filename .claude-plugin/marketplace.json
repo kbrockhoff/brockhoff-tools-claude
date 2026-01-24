@@ -8,6 +8,11 @@
       "name": "bkff-git",
       "source": "./plugins/bkff-git",
       "description": "Git lifecycle commands for worktree-based development: status, branch, commit, sync, and PR management"
+    },
+    {
+      "name": "bkff",
+      "source": "./plugins/bkff",
+      "description": "Spec-driven development workflows: compliance checking, task-to-issue conversion, agentic development loops, verification skills, ADR generation, test generation, README generation, and PR feedback handling"
     }
   ]
 }
