@@ -2,6 +2,10 @@
 # common.sh - Shared utility functions for bkff plugin
 # Source this file in all skill scripts
 
+# Include guard to prevent double-sourcing
+[[ -n "${_BKFF_COMMON_SOURCED:-}" ]] && return 0
+readonly _BKFF_COMMON_SOURCED=1
+
 set -euo pipefail
 
 # =============================================================================

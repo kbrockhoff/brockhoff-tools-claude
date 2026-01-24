@@ -30,14 +30,22 @@ cleanup_test_repo() {
 # Compliance Check Tests
 # =============================================================================
 
+# Check definitions matching those in COMPLIANCE_CHECKS array
+CHECK_CODEOWNERS="github-codeowners|file|.github/CODEOWNERS|Code review ownership rules|Create CODEOWNERS"
+CHECK_CONTRIBUTING="github-contributing|file|.github/CONTRIBUTING.md|Contribution guidelines|Create CONTRIBUTING.md"
+CHECK_PR_TEMPLATE="github-pr-template|file|.github/pull_request_template.md|PR template|Create PR template"
+
 test_check_codeowners_missing() {
     local test_dir
     test_dir=$(setup_test_repo)
 
     local result
-    result=$(check_codeowners 2>/dev/null || echo "failed")
+    # Use || true to prevent exit on check failure (run_check returns 1 when check fails)
+    result=$(run_check "$CHECK_CODEOWNERS" 2>/dev/null) || true
+    local status
+    status=$(echo "$result" | jq -r '.status')
 
-    assert_contains "$result" "failed" "Should fail when CODEOWNERS missing"
+    assert_equals "$status" "fail" "Should fail when CODEOWNERS missing"
 
     cleanup_test_repo "$test_dir"
 }
@@ -49,9 +57,11 @@ test_check_codeowners_exists() {
     echo "* @owner" > .github/CODEOWNERS
 
     local result
-    result=$(check_codeowners 2>/dev/null && echo "passed" || echo "failed")
+    result=$(run_check "$CHECK_CODEOWNERS" 2>/dev/null) || true
+    local status
+    status=$(echo "$result" | jq -r '.status')
 
-    assert_equals "$result" "passed" "Should pass when CODEOWNERS exists"
+    assert_equals "$status" "pass" "Should pass when CODEOWNERS exists"
 
     cleanup_test_repo "$test_dir"
 }
@@ -61,9 +71,11 @@ test_check_contributing_missing() {
     test_dir=$(setup_test_repo)
 
     local result
-    result=$(check_contributing 2>/dev/null || echo "failed")
+    result=$(run_check "$CHECK_CONTRIBUTING" 2>/dev/null) || true
+    local status
+    status=$(echo "$result" | jq -r '.status')
 
-    assert_contains "$result" "failed" "Should fail when CONTRIBUTING.md missing"
+    assert_equals "$status" "fail" "Should fail when CONTRIBUTING.md missing"
 
     cleanup_test_repo "$test_dir"
 }
@@ -71,12 +83,15 @@ test_check_contributing_missing() {
 test_check_contributing_exists() {
     local test_dir
     test_dir=$(setup_test_repo)
-    echo "# Contributing" > CONTRIBUTING.md
+    mkdir -p .github
+    echo "# Contributing" > .github/CONTRIBUTING.md
 
     local result
-    result=$(check_contributing 2>/dev/null && echo "passed" || echo "failed")
+    result=$(run_check "$CHECK_CONTRIBUTING" 2>/dev/null) || true
+    local status
+    status=$(echo "$result" | jq -r '.status')
 
-    assert_equals "$result" "passed" "Should pass when CONTRIBUTING.md exists"
+    assert_equals "$status" "pass" "Should pass when CONTRIBUTING.md exists"
 
     cleanup_test_repo "$test_dir"
 }
@@ -86,9 +101,11 @@ test_check_pr_template_missing() {
     test_dir=$(setup_test_repo)
 
     local result
-    result=$(check_pr_template 2>/dev/null || echo "failed")
+    result=$(run_check "$CHECK_PR_TEMPLATE" 2>/dev/null) || true
+    local status
+    status=$(echo "$result" | jq -r '.status')
 
-    assert_contains "$result" "failed" "Should fail when PR template missing"
+    assert_equals "$status" "fail" "Should fail when PR template missing"
 
     cleanup_test_repo "$test_dir"
 }
@@ -100,9 +117,11 @@ test_check_pr_template_exists() {
     echo "## Description" > .github/pull_request_template.md
 
     local result
-    result=$(check_pr_template 2>/dev/null && echo "passed" || echo "failed")
+    result=$(run_check "$CHECK_PR_TEMPLATE" 2>/dev/null) || true
+    local status
+    status=$(echo "$result" | jq -r '.status')
 
-    assert_equals "$result" "passed" "Should pass when PR template exists"
+    assert_equals "$status" "pass" "Should pass when PR template exists"
 
     cleanup_test_repo "$test_dir"
 }
@@ -216,18 +235,21 @@ run_test_suite() {
     echo "Running compliance.sh tests..."
     echo ""
 
-    run_test "test_check_codeowners_missing"
-    run_test "test_check_codeowners_exists"
-    run_test "test_check_contributing_missing"
-    run_test "test_check_contributing_exists"
-    run_test "test_check_pr_template_missing"
-    run_test "test_check_pr_template_exists"
-    run_test "test_create_codeowners"
-    run_test "test_create_contributing"
-    run_test "test_create_pr_template"
-    run_test "test_run_all_checks_empty_repo"
-    run_test "test_run_all_checks_compliant_repo"
-    run_test "test_fix_all"
+    # Disable errexit for test execution (run_test returns 1 on test failure)
+    set +e
+    run_test "test_check_codeowners_missing" test_check_codeowners_missing
+    run_test "test_check_codeowners_exists" test_check_codeowners_exists
+    run_test "test_check_contributing_missing" test_check_contributing_missing
+    run_test "test_check_contributing_exists" test_check_contributing_exists
+    run_test "test_check_pr_template_missing" test_check_pr_template_missing
+    run_test "test_check_pr_template_exists" test_check_pr_template_exists
+    run_test "test_create_codeowners" test_create_codeowners
+    run_test "test_create_contributing" test_create_contributing
+    run_test "test_create_pr_template" test_create_pr_template
+    run_test "test_run_all_checks_empty_repo" test_run_all_checks_empty_repo
+    run_test "test_run_all_checks_compliant_repo" test_run_all_checks_compliant_repo
+    run_test "test_fix_all" test_fix_all
+    set -e
 
     print_test_summary
 }
