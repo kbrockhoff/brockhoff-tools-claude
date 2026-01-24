@@ -236,3 +236,102 @@ require_bd() {
         error_exit "Beads CLI (bd) is required but not installed"
     fi
 }
+
+# =============================================================================
+# .bkff State Directory Support
+# =============================================================================
+
+# Get the path to the .bkff state directory
+# Usage: get_bkff_dir
+get_bkff_dir() {
+    local root
+    root=$(get_worktree_path)
+    echo "$root/.bkff"
+}
+
+# Check if .bkff directory exists
+has_bkff_dir() {
+    local bkff_dir
+    bkff_dir=$(get_bkff_dir)
+    [[ -d "$bkff_dir" ]]
+}
+
+# Initialize .bkff directory structure
+# Creates: .bkff/, .bkff/history/, .bkff/config.json
+init_bkff_dir() {
+    local bkff_dir
+    bkff_dir=$(get_bkff_dir)
+
+    if [[ -d "$bkff_dir" ]]; then
+        debug ".bkff directory already exists"
+        return 0
+    fi
+
+    mkdir -p "$bkff_dir/history"
+
+    # Create default config
+    cat > "$bkff_dir/config.json" << 'EOF'
+{
+  "version": "0.1.0",
+  "adr_directory": "docs/adr",
+  "specs_directory": "specs",
+  "loop": {
+    "max_retries": 3,
+    "retry_backoff_seconds": 5
+  }
+}
+EOF
+
+    debug "Initialized .bkff directory at $bkff_dir"
+}
+
+# Ensure .bkff directory exists, create if needed
+require_bkff_dir() {
+    if ! has_bkff_dir; then
+        init_bkff_dir
+    fi
+}
+
+# Get a config value from .bkff/config.json
+# Usage: get_bkff_config ".adr_directory"
+get_bkff_config() {
+    local path="$1"
+    local bkff_dir
+    bkff_dir=$(get_bkff_dir)
+    local config_file="$bkff_dir/config.json"
+
+    if [[ ! -f "$config_file" ]]; then
+        echo ""
+        return 1
+    fi
+
+    jq -r "$path // empty" "$config_file" 2>/dev/null || echo ""
+}
+
+# Get the ADR directory path
+get_adr_dir() {
+    local root
+    root=$(get_worktree_path)
+    local adr_subdir
+    adr_subdir=$(get_bkff_config ".adr_directory")
+
+    if [[ -z "$adr_subdir" ]]; then
+        adr_subdir="docs/adr"
+    fi
+
+    echo "$root/$adr_subdir"
+}
+
+# =============================================================================
+# Timestamp Utilities
+# =============================================================================
+
+# Get current ISO 8601 timestamp
+get_timestamp() {
+    date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
+# Get timestamp suitable for filenames
+get_filename_timestamp() {
+    date -u +"%Y-%m-%dT%H-%M-%SZ"
+}
